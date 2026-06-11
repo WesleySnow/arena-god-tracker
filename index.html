@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="英雄联盟斗魂竞技场吃鸡进度追踪器：全英雄收集进度、海克斯图鉴、装备百科、塔罗抽卡与战绩时间线。数据实时同步官方版本。">
     <meta name="theme-color" content="#0b0e13">
-    <title>Arena God Tracker - Ultimate V10.4</title>
+    <title>Arena God Tracker - Ultimate V10.5</title>
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏆</text></svg>">
     <link rel="manifest" href="manifest.webmanifest">
@@ -237,6 +237,10 @@
         .confirm-btn:hover:not(:disabled) { background: var(--accent-hover); box-shadow: 0 0 10px rgba(232, 64, 87, 0.4); }
         .confirm-btn:disabled { background: var(--bg-hover); color: var(--text-muted); cursor: not-allowed; border-color: var(--border-dark); }
 
+        #busy-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.72); z-index: 10008; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px; color: #fff; font-size: 0.95rem; text-align: center; padding: 0 24px; }
+        #busy-overlay.show { display: flex; }
+        .busy-spinner { width: 42px; height: 42px; border: 4px solid rgba(255,255,255,0.25); border-top-color: #d4af37; border-radius: 50%; animation: busy-spin 0.9s linear infinite; }
+        @keyframes busy-spin { to { transform: rotate(360deg); } }
         #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10002; display: flex; flex-direction: column; gap: 10px; pointer-events: none;}
         .toast { background-color: var(--bg-panel); color: var(--text-main); padding: 12px 24px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); border: 1px solid var(--border-dark); font-size: 0.95rem; opacity: 0; transform: translateY(20px); transition: all 0.3s ease; text-align: center;}
         .toast.show { opacity: 1; transform: translateY(0); }
@@ -344,8 +348,11 @@
             .filter-bar { justify-content: center; }
             .filter-btn { padding: 6px 12px; font-size: 0.85rem; }
             #data-management-group { justify-content: center; width: 100%; flex-wrap: wrap; gap: 10px;}
-            .view-list .data-card { flex-direction: column; text-align: center; gap: 8px; }
-            .data-container.view-list { grid-template-columns: repeat(auto-fill, minmax(100%, 1fr)); }
+            /* 列表视图：保持横排（头像在左、名字在右），双列紧凑布局 */
+            .data-container.view-list { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .view-list .data-card { padding: 8px; gap: 8px; }
+            .view-list .avatar-container { width: 38px; height: 38px; }
+            .view-list .data-name { font-size: 0.85rem; }
             #tooltip { width: 90vw; max-width: 350px; font-size: 0.9rem; padding: 12px; box-sizing: border-box;}
             #tooltip .tooltip-title { font-size: 1rem; margin-bottom: 8px; padding-bottom: 6px; }
             #tooltip .tooltip-desc { font-size: 0.76rem; line-height: 1.45; }
@@ -369,7 +376,7 @@
     <div class="header">
         <h1>🏆 Arena God Tracker</h1>
         <div class="stats-box" id="stats-box-display">
-            收集进度: <strong id="statsDisplayNum">0</strong> / <span id="statsTotalNum">0</span>
+            <span data-i18n="progressLabel">收集进度:</span> <strong id="statsDisplayNum">0</strong> / <span id="statsTotalNum">0</span>
         </div>
         <div class="progress-container" id="progress-container-display">
             <div class="progress-fill" id="progressFill"></div>
@@ -383,7 +390,7 @@
     <!-- 版本变动横幅（侦测到官方数据更新时显示） -->
     <div id="changes-banner">
         <div class="cb-text" id="changes-banner-text"></div>
-        <span class="cb-link" id="changes-banner-detail">查看详情 →</span>
+        <span class="cb-link" id="changes-banner-detail" data-i18n="viewDetail">查看详情 →</span>
         <span class="cb-close" id="changes-banner-close" title="关闭">✕</span>
     </div>
 
@@ -402,6 +409,10 @@
             </div>
 
             <div class="btn-group">
+                <select id="lang-select" class="tool-btn icon-btn" title="Language / 语言" style="appearance:none;-webkit-appearance:none;cursor:pointer;">
+                    <option value="zh">🌐 中文</option>
+                    <option value="en">🌐 EN</option>
+                </select>
                 <button class="tool-btn icon-btn" id="btn-theme" title="切换浅色/暗色主题">🌙</button>
                 <button class="tool-btn poster-btn" id="btn-poster" title="生成当前页面的精美海报">📸 海报</button>
                 <button class="tool-btn highlight" id="btn-random" title="随机挑选一个未吃鸡的英雄（跟随当前职业筛选）" aria-label="随机抽卡">🎲 抽卡</button>
@@ -413,25 +424,25 @@
         <div class="toolbar-bottom">
             <div class="filter-bar" id="filter-bar-champions"></div>
             <div class="filter-bar" id="filter-bar-augments" style="display: none;">
-                <button class="filter-btn active" data-filter="All">全部级别</button>
-                <button class="filter-btn" data-filter="Prismatic">棱彩 (Prismatic)</button>
-                <button class="filter-btn" data-filter="Gold">黄金 (Gold)</button>
-                <button class="filter-btn" data-filter="Silver">白银 (Silver)</button>
-                <button class="filter-btn" data-filter="Special">特殊 (Special)</button>
+                <button class="filter-btn active" data-filter="All" data-i18n="filterAllLevels">全部级别</button>
+                <button class="filter-btn" data-filter="Prismatic" data-i18n="tierPrismatic">棱彩 (Prismatic)</button>
+                <button class="filter-btn" data-filter="Gold" data-i18n="tierGold">黄金 (Gold)</button>
+                <button class="filter-btn" data-filter="Silver" data-i18n="tierSilver">白银 (Silver)</button>
+                <button class="filter-btn" data-filter="Special" data-i18n="tierSpecial">特殊 (Special)</button>
             </div>
             <div class="filter-bar" id="filter-bar-items" style="display: none;">
-                <button class="filter-btn active" data-filter="All">全部装备</button>
-                <button class="filter-btn" data-filter="Prismatic">棱镜装备</button>
-                <button class="filter-btn" data-filter="Legendary">神话/传说</button>
-                <button class="filter-btn" data-filter="Boots">鞋子</button>
-                <button class="filter-btn" data-filter="Consumable">消耗品</button>
-                <button class="filter-btn" data-filter="Other">其他</button>
+                <button class="filter-btn active" data-filter="All" data-i18n="catAll">全部装备</button>
+                <button class="filter-btn" data-filter="Prismatic" data-i18n="catPrismatic">棱镜装备</button>
+                <button class="filter-btn" data-filter="Legendary" data-i18n="catLegendary">神话/传说</button>
+                <button class="filter-btn" data-filter="Boots" data-i18n="catBoots">鞋子</button>
+                <button class="filter-btn" data-filter="Consumable" data-i18n="catConsumable">消耗品</button>
+                <button class="filter-btn" data-filter="Other" data-i18n="catOther">其他</button>
             </div>
 
             <div class="btn-group" style="align-items: center;" id="data-management-group">
                 <label class="switch-wrapper" id="focus-mode-wrapper" title="开启后只显示未收集的项目">
                     <div class="switch"><input type="checkbox" id="focusModeToggle"><span class="slider"></span></div>
-                    专注模式
+                    <span data-i18n="focusMode">专注模式</span>
                 </label>
                 <div style="width: 1px; height: 20px; background: var(--border-dark); margin: 0 5px;" class="divider-line"></div>
                 <button class="tool-btn" id="btn-tier" style="padding: 6px 12px; font-size: 0.8rem;" title="打开 Lolalytics 竞技场全英雄胜率排行（实时数据）">📈 胜率</button>
@@ -461,6 +472,12 @@
 <div id="scroll-top-btn" title="回到顶部">↑</div>
 <div id="toast-container"></div>
 
+<!-- 全屏忙碌遮罩（海报生成等耗时操作） -->
+<div id="busy-overlay">
+    <div class="busy-spinner"></div>
+    <div id="busy-text"></div>
+</div>
+
 <!-- 通用确认模态框 -->
 <div id="custom-modal" class="modal-overlay">
     <div class="modal-box">
@@ -476,8 +493,8 @@
             </div>
         </div>
         <div class="modal-footer">
-            <button class="modal-btn cancel-btn" id="modal-cancel">取消 (Esc)</button>
-            <button class="modal-btn confirm-btn" id="modal-confirm">确定 (Enter)</button>
+            <button class="modal-btn cancel-btn" id="modal-cancel" data-i18n="modalCancel">取消 (Esc)</button>
+            <button class="modal-btn confirm-btn" id="modal-confirm" data-i18n="modalConfirm">确定 (Enter)</button>
         </div>
     </div>
 </div>
@@ -485,11 +502,11 @@
 <!-- 战绩统计模态框：职业进度 + 吃鸡时间线 -->
 <div id="stats-modal" class="modal-overlay">
     <div class="modal-box stats-modal-box">
-        <div class="modal-header">📊 战绩统计 <span class="modal-close-x" id="stats-close">✕</span></div>
+        <div class="modal-header"><span data-i18n="statsTitle">📊 战绩统计</span> <span class="modal-close-x" id="stats-close">✕</span></div>
         <div class="stats-modal-body">
-            <div class="stats-section-title">⚔️ 职业进度</div>
+            <div class="stats-section-title" data-i18n="roleProgress">⚔️ 职业进度</div>
             <div id="role-stats"></div>
-            <div class="stats-section-title mt">🕑 吃鸡时间线</div>
+            <div class="stats-section-title mt" data-i18n="timelineTitle">🕑 吃鸡时间线</div>
             <div class="timeline-list" id="timeline-list"></div>
         </div>
     </div>
@@ -498,10 +515,10 @@
 <!-- 海报展示模态框（移动端：长按保存到相册） -->
 <div id="poster-modal" class="modal-overlay">
     <div class="modal-box" style="width: auto; max-width: 94vw;">
-        <div class="modal-header">📸 海报已生成 <span class="modal-close-x" id="poster-close">✕</span></div>
+        <div class="modal-header"><span data-i18n="posterTitle">📸 海报已生成</span> <span class="modal-close-x" id="poster-close">✕</span></div>
         <div class="modal-body" style="max-height: 74vh; overflow: auto; padding: 12px;">
             <img id="poster-img" alt="战绩海报" style="max-width: 100%; height: auto; border-radius: 8px; display: block;">
-            <div style="margin-top: 10px; color: var(--text-muted); font-size: 0.85rem;">长按图片 → 保存到相册 / 发送给好友</div>
+            <div style="margin-top: 10px; color: var(--text-muted); font-size: 0.85rem;" data-i18n="posterTip">长按图片 → 保存到相册 / 发送给好友</div>
         </div>
     </div>
 </div>
@@ -509,16 +526,16 @@
 <!-- 进度迁移模态框（二维码 / 迁移码） -->
 <div id="migrate-modal" class="modal-overlay">
     <div class="modal-box stats-modal-box">
-        <div class="modal-header">📱 进度迁移 <span class="modal-close-x" id="migrate-close">✕</span></div>
+        <div class="modal-header"><span data-i18n="migrateTitle">📱 进度迁移</span> <span class="modal-close-x" id="migrate-close">✕</span></div>
         <div class="stats-modal-body">
-            <div class="stats-section-title">① 在这台设备生成</div>
+            <div class="stats-section-title" data-i18n="migrateStep1">① 在这台设备生成</div>
             <div id="qr-box"></div>
             <div id="qr-tip"></div>
-            <textarea id="migrate-code" class="migrate-textarea" readonly placeholder="迁移码会显示在这里"></textarea>
-            <div class="migrate-btn-row"><button class="tool-btn" id="migrate-copy">📋 复制迁移码</button></div>
-            <div class="stats-section-title mt">② 在另一台设备导入</div>
-            <textarea id="migrate-input" class="migrate-textarea" placeholder="把迁移码（或扫码得到的链接）粘贴到这里"></textarea>
-            <div class="migrate-btn-row"><button class="tool-btn" id="migrate-import">📲 导入并合并</button></div>
+            <textarea id="migrate-code" class="migrate-textarea" readonly data-i18n-ph="migrateCodePh" placeholder="迁移码会显示在这里"></textarea>
+            <div class="migrate-btn-row"><button class="tool-btn" id="migrate-copy" data-i18n="migrateCopy">📋 复制迁移码</button></div>
+            <div class="stats-section-title mt" data-i18n="migrateStep2">② 在另一台设备导入</div>
+            <textarea id="migrate-input" class="migrate-textarea" data-i18n-ph="migrateInputPh" placeholder="把迁移码（或扫码得到的链接）粘贴到这里"></textarea>
+            <div class="migrate-btn-row"><button class="tool-btn" id="migrate-import" data-i18n="migrateImport">📲 导入并合并</button></div>
         </div>
     </div>
 </div>
@@ -526,7 +543,7 @@
 <!-- 版本变动详情模态框 -->
 <div id="changes-modal" class="modal-overlay">
     <div class="modal-box stats-modal-box">
-        <div class="modal-header">🆕 版本数据变动 <span class="modal-close-x" id="changes-close">✕</span></div>
+        <div class="modal-header"><span data-i18n="changesTitle">🆕 版本数据变动</span> <span class="modal-close-x" id="changes-close">✕</span></div>
         <div class="stats-modal-body" id="changes-modal-body"></div>
     </div>
 </div>
@@ -534,13 +551,20 @@
 <!-- 塔罗抽卡模态框 -->
 <div id="tarot-modal" class="modal-overlay">
     <div id="tarot-cards-row"></div>
-    <div class="tarot-hint" id="tarot-hint">点击任意空白处前往英雄</div>
+    <div class="tarot-hint" id="tarot-hint" data-i18n="tarotHint">点击任意空白处前往英雄</div>
 </div>
 
 <script>
     // ==========================================================================
-    // Arena God Tracker V10.4 — 实时数据 + 主题系统 + 战绩记录引擎
+    // Arena God Tracker V10.5 — 实时数据 + 主题系统 + 战绩记录引擎
     //
+    // V10.5 变更摘要：
+    //  [功能] 🌐 中英双语：右上角下拉切换（默认中文），界面文案与数据源语言同步切换
+    //         （英文模式下英雄/海克斯/装备的名称与描述均来自官方英文数据）
+    //  [修复] 迁移码：去掉 AGT1: 前缀（旧码仍兼容）；解码时清除所有空白——
+    //         修复经微信等传输被插入换行导致"复制后无法使用"的问题
+    //  [修复] 海报生成：40秒看门狗 + 全屏进度遮罩 + 降低移动端渲染参数，绝不卡死
+    //  [移动] 列表视图改为双列横排紧凑布局
     // V10.4 变更摘要（移动端体验专项·二）：
     //  [移动] 修复海报生成后"回不来"：手机浏览器不支持网页下载，改为弹窗展示+长按保存
     //  [移动] 长按英雄卡显示技能说明（紧凑字号），松手即关；滚动手势不会误触发
@@ -561,16 +585,131 @@
 
     'use strict';
 
+    // ---------- 多语言系统 (i18n) ----------
+    // 界面文案与数据源语言同步切换；默认中文，偏好持久化，切换后刷新页面重拉对应语言数据
+    const LANG = (localStorage.getItem('arena_lang') === 'en') ? 'en' : 'zh';
+    const DD_LANG = LANG === 'en' ? 'en_US' : 'zh_CN';   // Data Dragon 语言码
+    const CD_LANG = LANG === 'en' ? 'en_us' : 'zh_cn';   // CommunityDragon 语言码
+    const SORT_LOCALE = LANG === 'en' ? 'en' : 'zh-Hans-CN';
+    document.documentElement.lang = LANG === 'en' ? 'en' : 'zh-CN';
+
+    const I18N = {
+    zh: {
+        tabChampions:'🦸‍♂️ 英雄天命', tabAugments:'🔮 海克斯图鉴', tabItems:'⚔️ 装备百科',
+        searchPh:'搜英雄 / 装备属性(如:护甲,吸血) / 拼音...',
+        btnPoster:'📸 海报', btnRandom:'🎲 抽卡', btnTier:'📈 胜率',
+        btnSortDefault:'🔄 默认', btnSortSink:'⬇️ 沉底', btnViewList:'📝 列表', btnViewGrid:'🔲 网格',
+        btnStats:'📊 统计', btnMigrate:'📱 迁移', btnExport:'💾 导出', btnImport:'📂 导入', btnReset:'🗑️ 清空',
+        focusMode:'专注模式', progressLabel:'收集进度:',
+        titlePoster:'生成当前页面的精美海报', titleRandom:'随机挑选一个未吃鸡的英雄（跟随当前职业筛选）',
+        titleTier:'打开 Lolalytics 竞技场全英雄胜率排行（实时数据）', titleMigrate:'用二维码把进度搬到另一台设备', titleFocus:'开启后只显示未收集的项目',
+        filterAllLevels:'全部级别', tierPrismatic:'棱彩 (Prismatic)', tierGold:'黄金 (Gold)', tierSilver:'白银 (Silver)', tierSpecial:'特殊 (Special)',
+        catAll:'全部装备', catPrismatic:'棱镜装备', catLegendary:'神话/传说', catBoots:'鞋子', catConsumable:'消耗品', catOther:'其他',
+        statsTitle:'📊 战绩统计', roleProgress:'⚔️ 职业进度', timelineTitle:'🕑 吃鸡时间线',
+        timelineEmpty:'还没有吃鸡记录，去开一把竞技场吧！🐔', earlyRecord:'早期记录',
+        migrateTitle:'📱 进度迁移', migrateStep1:'① 在这台设备生成', migrateStep2:'② 在另一台设备导入',
+        migrateCopy:'📋 复制迁移码', migrateImport:'📲 导入并合并',
+        migrateCodePh:'迁移码会显示在这里', migrateInputPh:'把迁移码（或扫码得到的链接）粘贴到这里',
+        migrateNone:'暂无进度记录可迁移，先去吃一鸡！🐔', migrateLibFail:'二维码组件加载失败（首次需联网），请联网刷新后重试',
+        migrateTipHosted:'共 <b>{n}</b> 条记录 · 用另一台设备的相机扫码，打开页面后自动提示导入',
+        migrateTipLocal:'共 <b>{n}</b> 条记录 · 扫码后复制内容，粘贴到另一台设备的下方导入框',
+        migrateTooBig:'进度数据太多，二维码装不下了 😅<br>请复制下方迁移码手动传输，或改用「💾 导出」文件迁移',
+        toastCodeInvalid:'⚠️ 迁移码无效或已损坏', toastMigrated:'📲 迁移完成：合并 {a} 条记录，新增 {b} 个英雄',
+        toastCopied:'📋 迁移码已复制', toastNoCode:'暂无可复制的迁移码',
+        hashFoundTitle:'📲 发现迁移数据', hashFoundMsg:'检测到来自其他设备的 <b style="color:var(--gold)">{n}</b> 条吃鸡记录。<br>确定合并到当前进度吗？（不会删除现有记录）',
+        hashInvalid:'⚠️ 链接中的迁移数据无效', hashMerged:'📲 迁移完成：新增 {n} 个英雄记录',
+        changesTitle:'🆕 版本数据变动', changesDetected:'🆕 侦测到官方数据更新：', viewDetail:'查看详情 →',
+        verChange:'版本 <b>{a}</b> → <b>{b}</b>', augChangeCount:'海克斯变动 <b>{n}</b> 条', itemChangeCount:'装备变动 <b>{n}</b> 件',
+        chgAdded:'✚ 新增', chgChanged:'✎ 改动', chgRemoved:'✖ 移除', chgGameVer:'🎮 游戏版本', chgAugs:'🔮 海克斯', chgItems:'⚔️ 装备',
+        chgOnlyVer:'本次仅版本号变化，内容无差异',
+        posterTitle:'📸 海报已生成', posterTip:'长按图片 → 保存到相册 / 发送给好友',
+        posterWorking:'📸 正在绘制高清海报，请稍候（最长约40秒）…', toastPosterOk:'✅ 专属图鉴海报生成成功！', toastPosterFail:'❌ 海报生成失败，请稍后重试',
+        modalCancel:'取消 (Esc)', modalConfirm:'确定 (Enter)',
+        unmarkTitle:'取消状态', unmarkMsg:'确定要将 【<span style="color:var(--accent)">{name}</span>】 移出吃鸡列表吗？',
+        confirmWinTitle:'🏆 确认吃鸡', confirmWinMsg:'将 【<span style="color:var(--gold)">{name}</span>】 标记为已吃鸡？',
+        toastWin:'🎉 恭喜！【{name}】已吃鸡！', toastUnmark:'已取消【{name}】',
+        guideOpgg:'📖 OP.GG 攻略', guideLola:'📊 胜率·出装', guideBlitz:'⚡ Blitz 攻略', guideNote:'查看该英雄的海克斯 / 出装 / 加点推荐与实时胜率',
+        resetTitle:'⚠️ 危险操作', resetMsg:'确定要<span style="color:var(--danger)">清空所有英雄的吃鸡记录与时间线</span>吗？', toastReset:'🗑️ 战绩记录已清空',
+        toastExported:'💾 战绩进度已导出（含吃鸡日期）', toastImported:'📂 战绩进度导入成功！', toastImportBad:'⚠️ 导入失败：文件格式不正确',
+        tarotHint:'点击任意空白处前往英雄', tarotRolePrefix:'【{role}】限定 · ',
+        toastAllDone:'🏆 太强了！英雄池已清空！', toastRoleDone:'🏆 {role}已全部吃鸡，换个职业试试！', toastTarot:'🎲 天命降临：这把就玩【{name}】！',
+        errChamps:'⚠️ 英雄数据拉取失败。<br><br>原因：可能是拳头官方API维护中，或者网络被拦截。<br>建议：尝试开启/关闭游戏加速器后重试。',
+        errItems:'⚠️ 装备百科加载失败。<br>可能是 CommunityDragon 服务器波动。',
+        errAugs:'⚠️ 官方海克斯数据拉取失败。<br>请检查网络后重试（成功加载过一次后，之后断网也能查看）。',
+        retryBtn:'🔄 重新加载', toastStaleChamps:'⚠️ 网络异常，英雄数据使用历史缓存显示',
+        noResult:'🔍 没有符合条件的结果', loadFailShort:'加载失败', detecting:'探测官方版本中...',
+        themeToLight:'切换为浅色主题', themeToDark:'切换为暗色主题',
+        priceGold:'💰 {n} 金币', pricePrismatic:'✨ 竞技场专属 · 不可购买',
+        footerTitle:'关于 Arena God Tracker',
+        footerP1:'本工具专为《英雄联盟》斗魂竞技场玩家打造。海克斯图鉴与装备百科<strong>实时同步官方最新版本数据</strong>，吃鸡记录自动带日期并可在统计面板查看时间线与各职业完成度。支持塔罗抽卡（跟随职业筛选）、浅色/暗色主题切换，进度永久保存在本地。',
+        footerP2:'<i>本工具数据解析自 Riot Games 游戏公开包（经由 CommunityDragon 镜像），不隶属于 Riot Games 官方。第三方攻略链接归属 Op.gg / Lolalytics / Blitz.gg 所有。</i>'
+    },
+    en: {
+        tabChampions:'🦸‍♂️ Champions', tabAugments:'🔮 Augments', tabItems:'⚔️ Items',
+        searchPh:'Search champions / item stats / aliases...',
+        btnPoster:'📸 Poster', btnRandom:'🎲 Draw', btnTier:'📈 Tiers',
+        btnSortDefault:'🔄 Default', btnSortSink:'⬇️ Done last', btnViewList:'📝 List', btnViewGrid:'🔲 Grid',
+        btnStats:'📊 Stats', btnMigrate:'📱 Transfer', btnExport:'💾 Export', btnImport:'📂 Import', btnReset:'🗑️ Reset',
+        focusMode:'Focus mode', progressLabel:'Progress:',
+        titlePoster:'Generate a poster of this page', titleRandom:'Randomly pick an unwon champion (respects role filter)',
+        titleTier:'Open Lolalytics Arena tier list (live data)', titleMigrate:'Move progress to another device via QR', titleFocus:'Show only uncollected entries',
+        filterAllLevels:'All tiers', tierPrismatic:'Prismatic', tierGold:'Gold', tierSilver:'Silver', tierSpecial:'Special',
+        catAll:'All items', catPrismatic:'Prismatic', catLegendary:'Legendary', catBoots:'Boots', catConsumable:'Consumables', catOther:'Other',
+        statsTitle:'📊 Statistics', roleProgress:'⚔️ Progress by role', timelineTitle:'🕑 Win timeline',
+        timelineEmpty:'No wins recorded yet — go play a round! 🐔', earlyRecord:'Earlier record',
+        migrateTitle:'📱 Transfer progress', migrateStep1:'① Generate on this device', migrateStep2:'② Import on the other device',
+        migrateCopy:'📋 Copy code', migrateImport:'📲 Import & merge',
+        migrateCodePh:'Your transfer code will appear here', migrateInputPh:'Paste the code (or scanned link) here',
+        migrateNone:'Nothing to transfer yet — win a round first! 🐔', migrateLibFail:'QR component failed to load (network needed once). Reload and retry.',
+        migrateTipHosted:'<b>{n}</b> records · Scan with the other device\'s camera — an import prompt appears automatically',
+        migrateTipLocal:'<b>{n}</b> records · Scan, copy the content, then paste into the import box on the other device',
+        migrateTooBig:'Too much data for a QR code 😅<br>Copy the code below manually, or use 💾 Export instead',
+        toastCodeInvalid:'⚠️ Invalid or corrupted transfer code', toastMigrated:'📲 Done: merged {a} records, {b} new champions',
+        toastCopied:'📋 Code copied', toastNoCode:'No code to copy yet',
+        hashFoundTitle:'📲 Transfer data found', hashFoundMsg:'Found <b style="color:var(--gold)">{n}</b> win records from another device.<br>Merge into current progress? (Nothing will be deleted)',
+        hashInvalid:'⚠️ Invalid transfer data in the link', hashMerged:'📲 Done: {n} new champion records',
+        changesTitle:'🆕 Data changes', changesDetected:'🆕 Official data updated: ', viewDetail:'Details →',
+        verChange:'Patch <b>{a}</b> → <b>{b}</b>', augChangeCount:'<b>{n}</b> augment change(s)', itemChangeCount:'<b>{n}</b> item change(s)',
+        chgAdded:'✚ Added', chgChanged:'✎ Changed', chgRemoved:'✖ Removed', chgGameVer:'🎮 Game patch', chgAugs:'🔮 Augments', chgItems:'⚔️ Items',
+        chgOnlyVer:'Patch number changed only; no content differences',
+        posterTitle:'📸 Poster ready', posterTip:'Long-press the image to save or share',
+        posterWorking:'📸 Rendering poster, please wait (up to ~40s)…', toastPosterOk:'✅ Poster generated!', toastPosterFail:'❌ Poster failed, please retry',
+        modalCancel:'Cancel (Esc)', modalConfirm:'OK (Enter)',
+        unmarkTitle:'Unmark win', unmarkMsg:'Remove <span style="color:var(--accent)">{name}</span> from the win list?',
+        confirmWinTitle:'🏆 Confirm win', confirmWinMsg:'Mark <span style="color:var(--gold)">{name}</span> as won?',
+        toastWin:'🎉 GG! {name} marked as won!', toastUnmark:'Unmarked {name}',
+        guideOpgg:'📖 OP.GG Guide', guideLola:'📊 Stats & Builds', guideBlitz:'⚡ Blitz Guide', guideNote:'Augment / build / skill-order picks & live win rates',
+        resetTitle:'⚠️ Danger zone', resetMsg:'Really <span style="color:var(--danger)">wipe ALL win records and the timeline</span>?', toastReset:'🗑️ All records cleared',
+        toastExported:'💾 Progress exported (with win dates)', toastImported:'📂 Progress imported!', toastImportBad:'⚠️ Import failed: bad file format',
+        tarotHint:'Tap anywhere to jump to the champion', tarotRolePrefix:'{role} only · ',
+        toastAllDone:'🏆 Incredible! Champion pool cleared!', toastRoleDone:'🏆 All {role} champions done — try another role!', toastTarot:'🎲 Destiny: play {name} this game!',
+        errChamps:'⚠️ Failed to fetch champion data.<br><br>Riot API may be under maintenance or blocked.<br>Try toggling your VPN/accelerator and retry.',
+        errItems:'⚠️ Failed to load items.<br>CommunityDragon may be unstable.',
+        errAugs:'⚠️ Failed to fetch augment data.<br>Check your network and retry (works offline after one successful load).',
+        retryBtn:'🔄 Reload', toastStaleChamps:'⚠️ Network issue — showing cached champion data',
+        noResult:'🔍 No matches', loadFailShort:'Load failed', detecting:'Detecting patch...',
+        themeToLight:'Switch to light theme', themeToDark:'Switch to dark theme',
+        priceGold:'💰 {n} gold', pricePrismatic:'✨ Arena exclusive · not purchasable',
+        footerTitle:'About Arena God Tracker',
+        footerP1:'A progress tracker for League of Legends Arena "Arena God" hunters. Augment and item encyclopedias <strong>sync live with the latest official patch</strong>; wins are recorded with dates, viewable as a timeline and per-role progress. Includes tarot-style random draw (respects role filter), light/dark themes, and local-only storage.',
+        footerP2:'<i>Data parsed from Riot Games public assets (via CommunityDragon). Not affiliated with or endorsed by Riot Games. Third-party guide links belong to Op.gg / Lolalytics / Blitz.gg.</i>'
+    }};
+    function t(key, vars) {
+        let s = (I18N[LANG] && I18N[LANG][key]) ?? I18N.zh[key] ?? key;
+        if (vars) for (const k in vars) s = s.split('{' + k + '}').join(vars[k]);
+        return s;
+    }
+
     // ---------- 存储与主题 ----------
     const KEYS = {
         legacy: 'arena_completed_champs',     // 旧版进度（纯ID数组），保留同步写入以兼容旧备份
         records: 'arena_win_records_v1',      // 新版进度：[{id, ts}]，ts 为吃鸡时间戳（旧数据迁移后为 null）
         theme: 'arena_theme',
         prefs: 'arena_ui_prefs',              // 界面偏好：{ view, sort }
-        snapshot: 'arena_data_snapshot_v1'    // 版本变动侦测：上次见到的数据指纹
+        snapshot: 'arena_data_snapshot_v1_' + LANG    // 版本变动侦测：上次见到的数据指纹
     };
     const CACHE_PREFIX = 'arena_cache_';
-    const AUG_CACHE_KEY = CACHE_PREFIX + 'augs_v10'; // v10起缓存"原始数据"，渲染规则升级后无需清缓存
+    const AUG_CACHE_KEY = CACHE_PREFIX + 'augs_v10_' + LANG; // v10起缓存"原始数据"，渲染规则升级后无需清缓存
     const AUG_CACHE_TTL = 24 * 3600 * 1000;
 
     // 主题需在数据加载前应用，避免闪屏；未手动选择过时默认跟随系统
@@ -601,7 +740,7 @@
     function updateThemeButton() {
         const btn = document.getElementById('btn-theme');
         btn.textContent = document.body.dataset.theme === 'dark' ? '🌙' : '☀️';
-        btn.title = document.body.dataset.theme === 'dark' ? '切换为浅色主题' : '切换为暗色主题';
+        btn.title = document.body.dataset.theme === 'dark' ? t('themeToLight') : t('themeToDark');
     }
 
     // ---------- 界面偏好（视图/排序自动记忆）----------
@@ -613,7 +752,7 @@
             const p = JSON.parse(localStorage.getItem(KEYS.prefs) || '{}');
             if (p.view === 'list') {
                 isListView = true;
-                document.getElementById('btn-view').innerHTML = '🔲 网格';
+                document.getElementById('btn-view').innerHTML = t('btnViewGrid');
                 ['champions', 'augments', 'items'].forEach(tab => {
                     const c = document.getElementById(`container-${tab}`);
                     c.classList.remove('view-grid'); c.classList.add('view-list');
@@ -621,7 +760,7 @@
             }
             if (p.sort === 'uncompletedFirst') {
                 currentSortMode = 'uncompletedFirst';
-                document.getElementById('btn-sort').innerHTML = '⬇️ 沉底';
+                document.getElementById('btn-sort').innerHTML = t('btnSortSink');
             }
         } catch(e) {}
     }
@@ -672,7 +811,7 @@
         let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
     }
     function formatDate(ts) {
-        if (!ts) return '早期记录';
+        if (!ts) return t('earlyRecord');
         const d = new Date(ts);
         const pad = n => String(n).padStart(2, '0');
         return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -681,10 +820,14 @@
     // ---------- 海克斯：官方稀有度与描述渲染 ----------
     const AUG_RARITY_MAP = { 0: 'Silver', 1: 'Gold', 2: 'Prismatic' };
     function tierOfRarity(r) { return AUG_RARITY_MAP[r] || 'Special'; }
-    const TIER_LABEL = { 'Silver': '白银', 'Gold': '黄金', 'Prismatic': '棱彩', 'Special': '特殊' };
+    const TIER_LABEL = LANG === 'en'
+        ? { 'Silver': 'Silver', 'Gold': 'Gold', 'Prismatic': 'Prismatic', 'Special': 'Special' }
+        : { 'Silver': '白银', 'Gold': '黄金', 'Prismatic': '棱彩', 'Special': '特殊' };
     const TIER_RANK = { 'Silver': 0, 'Gold': 1, 'Prismatic': 2, 'Special': 3 };       // 海克斯默认顺序
     const ITEM_CAT_RANK = { 'Prismatic': 0, 'Legendary': 1, 'Boots': 2, 'Consumable': 3, 'Other': 4 }; // 装备分类顺序
-    const ITEM_CAT_LABEL = { 'Prismatic': '棱镜装备', 'Legendary': '神话/传说', 'Boots': '鞋子', 'Consumable': '消耗品', 'Other': '其他' };
+    const ITEM_CAT_LABEL = LANG === 'en'
+        ? { 'Prismatic': 'Prismatic', 'Legendary': 'Legendary', 'Boots': 'Boots', 'Consumable': 'Consumable', 'Other': 'Other' }
+        : { 'Prismatic': '棱镜装备', 'Legendary': '神话/传说', 'Boots': '鞋子', 'Consumable': '消耗品', 'Other': '其他' };
 
     // 渲染官方描述：把数值占位符换成实际数值，并清理所有模板代码残留
     //  1. @Key@ / @Key*100@        → 实际数值；多级数值显示为 "20/40/60"
@@ -758,7 +901,9 @@
     let touchTooltipCardId = null; // 触屏模式下当前展示提示的卡片
     let suppressNextClick = false; // 长按结束后吞掉紧随其后的点击，防止误触发吃鸡确认
 
-    const ROLE_FILTERS = { "All": "全部英雄", "Fighter": "战士", "Mage": "法师", "Assassin": "刺客", "Marksman": "射手", "Tank": "坦克", "Support": "辅助" };
+    const ROLE_FILTERS = LANG === 'en'
+        ? { "All": "All roles", "Fighter": "Fighter", "Mage": "Mage", "Assassin": "Assassin", "Marksman": "Marksman", "Tank": "Tank", "Support": "Support" }
+        : { "All": "全部英雄", "Fighter": "战士", "Mage": "法师", "Assassin": "刺客", "Marksman": "射手", "Tank": "坦克", "Support": "辅助" };
     const ROLE_ORDER = ["Fighter", "Mage", "Assassin", "Marksman", "Tank", "Support"];
     function champRole(champ) {
         return ROLE_ORDER.includes(champ.tags[0]) ? champ.tags[0] : 'Fighter';
@@ -923,7 +1068,7 @@
         const btn = document.createElement('button');
         btn.className = 'tool-btn';
         btn.style.cssText = 'display:inline-flex;margin:0 auto;';
-        btn.textContent = '🔄 重新加载';
+        btn.textContent = t('retryBtn');
         btn.addEventListener('click', () => location.reload());
         el.appendChild(btn);
         el.classList.add('show');
@@ -931,6 +1076,7 @@
 
     // ---------- 初始化 ----------
     async function init() {
+        applyI18n();
         updateThemeButton();
         bindGlobalEvents();
         loadPrefs();
@@ -947,7 +1093,7 @@
         }
 
         ['champions', 'augments', 'items'].forEach(t => showSkeletons(t));
-        document.getElementById('statsDisplayNum').innerText = "...";
+        document.getElementById('statsDisplayNum').innerText = t('detecting');
 
         // 默认备用版本列表（防崩溃）
         let versions = ['16.11.1', '16.10.1', '16.9.1', '14.22.1'];
@@ -960,8 +1106,8 @@
             globalVersion = versions[0];
         }
 
-        const champCacheKey = `${CACHE_PREFIX}champs_v9_${globalVersion}`;
-        const itemCacheKey = `${CACHE_PREFIX}items_v11_${globalVersion}`;
+        const champCacheKey = `${CACHE_PREFIX}champs_v9_${LANG}_${globalVersion}`;
+        const itemCacheKey = `${CACHE_PREFIX}items_v11_${LANG}_${globalVersion}`;
 
         // 1. 英雄（智能版本降级重试）
         try {
@@ -971,7 +1117,7 @@
                 for (let i = 0; i < Math.min(10, versions.length); i++) {
                     try {
                         const testVersion = versions[i];
-                        const cRes = await fetch(`https://ddragon.leagueoflegends.com/cdn/${testVersion}/data/zh_CN/champion.json`);
+                        const cRes = await fetch(`https://ddragon.leagueoflegends.com/cdn/${testVersion}/data/${DD_LANG}/champion.json`);
                         if (!cRes.ok) throw new Error("HTTP Status " + cRes.status);
                         cData = await cRes.json();
                         activeVersion = testVersion;
@@ -991,14 +1137,14 @@
         } catch(e) {
             console.error("英雄数据加载失败", e);
             appData.champions = readAnyCache(CACHE_PREFIX + 'champs_') || [];
-            if (appData.champions.length) showToast('⚠️ 网络异常，英雄数据使用历史缓存显示');
-            else showLoadError('champions', "⚠️ 英雄数据拉取失败。<br><br>原因：可能是拳头官方API维护中，或者网络被拦截。<br>建议：尝试开启/关闭游戏加速器后重试。");
+            if (appData.champions.length) showToast(t('toastStaleChamps'));
+            else showLoadError('champions', t('errChamps'));
         } finally { clearSkeletons('champions'); }
 
         // 2. 装备（latest，跟随当前版本；按 棱镜/传说/鞋子/消耗品/其他 分类）
         try {
             appData.items = await loadDataWithCache(itemCacheKey, async () => {
-                const res = await fetch(`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/zh_cn/v1/items.json`);
+                const res = await fetch(`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/${CD_LANG}/v1/items.json`);
                 if (!res.ok) throw new Error("网络错误");
                 const rawItems = await res.json();
 
@@ -1056,7 +1202,7 @@
         } catch(e) {
             console.error("装备数据加载失败", e);
             appData.items = readAnyCache(CACHE_PREFIX + 'items_') || [];
-            if (!appData.items.length) showLoadError('items', "⚠️ 装备百科加载失败。<br>可能是 CommunityDragon 服务器波动。");
+            if (!appData.items.length) showLoadError('items', t('errItems'));
         } finally { clearSkeletons('items'); }
 
         // 3. 海克斯（官方实时数据，含真实图标与官方中文描述）
@@ -1064,7 +1210,7 @@
         // 这样描述清洗规则升级后立即生效，不会被 24 小时缓存卡住旧结果
         try {
             const rawAugs = await loadDataWithCache(AUG_CACHE_KEY, async () => {
-                const res = await fetch('https://raw.communitydragon.org/latest/cdragon/arena/zh_cn.json');
+                const res = await fetch(`https://raw.communitydragon.org/latest/cdragon/arena/${CD_LANG}.json`);
                 if (!res.ok) throw new Error("HTTP Status " + res.status);
                 const json = await res.json();
                 if (!json.augments || json.augments.length === 0) throw new Error("Arena数据为空");
@@ -1092,13 +1238,13 @@
         } catch(e) {
             // 走到这里说明：拉取失败且本地连一份过期缓存都没有（如首次打开就断网）
             console.error("官方海克斯数据拉取失败，且无历史缓存可回退", e);
-            showLoadError('augments', "⚠️ 官方海克斯数据拉取失败。<br>请检查网络后重试（成功加载过一次后，之后断网也能查看）。");
+            showLoadError('augments', t('errAugs'));
         } finally { clearSkeletons('augments'); }
 
         if (appData.champions.length > 0) {
             switchTab('champions');
         } else {
-            document.getElementById('statsDisplayNum').innerText = "加载失败";
+            document.getElementById('statsDisplayNum').innerText = t('loadFailShort');
             document.getElementById('emptyState-champions').classList.add('show');
         }
 
@@ -1121,12 +1267,35 @@
         });
     }
 
+    // ---------- 界面文案应用与忙碌遮罩 ----------
+    function applyI18n() {
+        document.querySelectorAll('[data-i18n]').forEach(el => { el.innerHTML = t(el.dataset.i18n); });
+        document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+        const setBtn = (id, key, titleKey) => { const el = document.getElementById(id); if (!el) return; el.innerHTML = t(key); if (titleKey) el.title = t(titleKey); };
+        setBtn('btn-tab-champions','tabChampions'); setBtn('btn-tab-augments','tabAugments'); setBtn('btn-tab-items','tabItems');
+        setBtn('btn-poster','btnPoster','titlePoster'); setBtn('btn-random','btnRandom','titleRandom'); setBtn('btn-tier','btnTier','titleTier');
+        setBtn('btn-sort','btnSortDefault'); setBtn('btn-view','btnViewList');
+        setBtn('btn-stats','btnStats'); setBtn('btn-migrate','btnMigrate','titleMigrate');
+        setBtn('btn-export','btnExport'); setBtn('btn-import','btnImport'); setBtn('btn-reset','btnReset');
+        const fw = document.getElementById('focus-mode-wrapper'); if (fw) fw.title = t('titleFocus');
+        document.getElementById('globalSearch').placeholder = t('searchPh');
+        const ls = document.getElementById('lang-select'); if (ls) ls.value = LANG;
+    }
+    function showBusy(text) { document.getElementById('busy-text').textContent = text; document.getElementById('busy-overlay').classList.add('show'); }
+    function hideBusy() { document.getElementById('busy-overlay').classList.remove('show'); }
+
     // ---------- 事件委托（全站统一绑定，无内联 onclick）----------
     function bindGlobalEvents() {
         // 顶部 Tab
         document.querySelector('.tabs-header').addEventListener('click', e => {
             const btn = e.target.closest('.tab-btn');
             if (btn) switchTab(btn.dataset.tab);
+        });
+
+        // 语言切换：保存偏好后刷新页面，按新语言重拉数据
+        document.getElementById('lang-select').addEventListener('change', e => {
+            localStorage.setItem('arena_lang', e.target.value === 'en' ? 'en' : 'zh');
+            location.reload();
         });
 
         // 工具按钮
@@ -1261,9 +1430,9 @@
         });
         document.getElementById('migrate-copy').addEventListener('click', () => {
             const ta = document.getElementById('migrate-code');
-            if (!ta.value) { showToast('暂无可复制的迁移码'); return; }
+            if (!ta.value) { showToast(t('toastNoCode')); return; }
             ta.select();
-            const done = () => showToast('📋 迁移码已复制');
+            const done = () => showToast(t('toastCopied'));
             if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(done).catch(() => { document.execCommand('copy'); done(); });
             else { document.execCommand('copy'); done(); }
         });
@@ -1372,14 +1541,14 @@
 
     function toggleSort() {
         currentSortMode = currentSortMode === 'default' ? 'uncompletedFirst' : 'default';
-        document.getElementById('btn-sort').innerHTML = currentSortMode === 'default' ? '🔄 默认' : '⬇️ 沉底';
+        document.getElementById('btn-sort').innerHTML = currentSortMode === 'default' ? t('btnSortDefault') : t('btnSortSink');
         savePrefs();
         renderData(); applyFilters();
     }
 
     function toggleViewMode() {
         isListView = !isListView;
-        document.getElementById('btn-view').innerHTML = isListView ? '🔲 网格' : '📝 列表';
+        document.getElementById('btn-view').innerHTML = isListView ? t('btnViewGrid') : t('btnViewList');
         ['champions', 'augments', 'items'].forEach(tab => {
             const container = document.getElementById(`container-${tab}`);
             container.classList.toggle('view-grid', !isListView);
@@ -1466,16 +1635,16 @@
                 // 默认顺序：白银 → 黄金 → 棱彩 → 特殊，同级内按名称
                 const tierDiff = (TIER_RANK[a.tier] ?? 9) - (TIER_RANK[b.tier] ?? 9);
                 if (tierDiff !== 0) return tierDiff;
-                return a.name.localeCompare(b.name, 'zh-Hans-CN');
+                return a.name.localeCompare(b.name, SORT_LOCALE);
             }
             if(currentTab === 'items') {
                 // 分类顺序：棱镜 → 神话/传说 → 鞋子 → 消耗品 → 其他，同类内按价格降序
                 const catDiff = (ITEM_CAT_RANK[a.cat] ?? 9) - (ITEM_CAT_RANK[b.cat] ?? 9);
                 if (catDiff !== 0) return catDiff;
                 if (b.price !== a.price) return b.price - a.price;
-                return a.name.localeCompare(b.name, 'zh-Hans-CN');
+                return a.name.localeCompare(b.name, SORT_LOCALE);
             }
-            return a.name.localeCompare(b.name, 'zh-Hans-CN');
+            return a.name.localeCompare(b.name, SORT_LOCALE);
         });
 
         const frag = document.createDocumentFragment();
@@ -1512,7 +1681,7 @@
             card.classList.add('show'); visibleCount++;
         });
         const emptyState = document.getElementById(`emptyState-${currentTab}`);
-        if (visibleCount === 0 && !emptyState.innerHTML) emptyState.innerHTML = '🔍 没有符合条件的结果';
+        if (visibleCount === 0 && !emptyState.innerHTML) emptyState.innerHTML = t('noResult');
         emptyState.classList.toggle('show', visibleCount === 0);
     }
 
@@ -1521,11 +1690,11 @@
         const lower = encodeURIComponent(champId.toLowerCase());
         const btn = 'display:inline-block;padding:7px 12px;border:1px solid var(--border-dark);border-radius:8px;color:var(--text-main);background:var(--bg-hover);text-decoration:none;font-size:0.82rem;font-weight:600;';
         return `<div style="display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap;">
-            <a href="https://op.gg/lol/modes/arena/${lower}/build" target="_blank" rel="noopener" style="${btn}">📖 OP.GG 攻略</a>
-            <a href="https://lolalytics.com/lol/${lower}/arena/build/" target="_blank" rel="noopener" style="${btn}">📊 胜率·出装</a>
-            <a href="https://blitz.gg/ja/lol/champions/${encodeURIComponent(champId)}/arena" target="_blank" rel="noopener" style="${btn}">⚡ Blitz 攻略</a>
+            <a href="https://op.gg/lol/modes/arena/${lower}/build" target="_blank" rel="noopener" style="${btn}">${t('guideOpgg')}</a>
+            <a href="https://lolalytics.com/lol/${lower}/arena/build/" target="_blank" rel="noopener" style="${btn}">${t('guideLola')}</a>
+            <a href="https://blitz.gg/ja/lol/champions/${encodeURIComponent(champId)}/arena" target="_blank" rel="noopener" style="${btn}">${t('guideBlitz')}</a>
         </div>
-        <div style="margin-top:8px;font-size:0.74rem;color:var(--text-muted);">查看该英雄的海克斯 / 出装 / 加点推荐与实时胜率</div>`;
+        <div style="margin-top:8px;font-size:0.74rem;color:var(--text-muted);">${t('guideNote')}</div>`;
     }
 
     async function toggleStatus(itemId, itemName) {
@@ -1534,22 +1703,22 @@
         const card = document.getElementById(`card-champions-${itemId}`);
 
         if (completed.includes(itemId)) {
-            const confirmed = await showConfirmWithTimer('取消状态', `确定要将 【<span style="color:var(--accent)">${escapeHtml(itemName)}</span>】 移出吃鸡列表吗？`, false);
+            const confirmed = await showConfirmWithTimer(t('unmarkTitle'), t('unmarkMsg', { name: escapeHtml(itemName) }), false);
             if (!confirmed) return;
             removeWin(itemId);
             card.classList.remove('completed');
-            showToast(`已取消【${escapeHtml(itemName)}】`);
+            showToast(t('toastUnmark', { name: escapeHtml(itemName) }));
         } else {
             // 触屏设备：先确认再标记（防误触）；确认框内附攻略直达链接
             if (IS_TOUCH) {
-                const confirmed = await showConfirmWithTimer('🏆 确认吃鸡',
-                    `将 【<span style="color:var(--gold)">${escapeHtml(itemName)}</span>】 标记为已吃鸡？${championGuideLinksHtml(itemId)}`, false);
+                const confirmed = await showConfirmWithTimer(t('confirmWinTitle'),
+                    t('confirmWinMsg', { name: escapeHtml(itemName) }) + championGuideLinksHtml(itemId), false);
                 if (!confirmed) return;
             }
             addWin(itemId);
             card.classList.add('completed');
             if(typeof confetti !== 'undefined') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#d4af37', '#ffffff', '#e84057'] });
-            showToast(`🎉 恭喜！【${escapeHtml(itemName)}】已吃鸡！`);
+            showToast(t('toastWin', { name: escapeHtml(itemName) }));
         }
         updateStatsUI();
         if(currentSortMode === 'uncompletedFirst') renderData();
@@ -1586,7 +1755,7 @@
         const sorted = [...records].sort((a, b) => (b.ts || 0) - (a.ts || 0));
         let tlHtml = '';
         if (sorted.length === 0) {
-            tlHtml = '<div class="tl-empty">还没有吃鸡记录，去开一把竞技场吧！🐔</div>';
+            tlHtml = `<div class="tl-empty">${t('timelineEmpty')}</div>`;
         } else {
             sorted.forEach(r => {
                 const champ = champById.get(r.id);
@@ -1646,14 +1815,14 @@
 
     function showChangesBanner(oldVer, newVer, aDiff, iDiff, total, verChanged) {
         const parts = [];
-        if (verChanged) parts.push(`版本 <b>${escapeHtml(oldVer)}</b> → <b>${escapeHtml(newVer)}</b>`);
+        if (verChanged) parts.push(t('verChange', { a: escapeHtml(oldVer), b: escapeHtml(newVer) }));
         const augCount = aDiff.added.length + aDiff.changed.length + aDiff.removed.length;
         const itemCount = iDiff.added.length + iDiff.changed.length + iDiff.removed.length;
-        if (augCount) parts.push(`海克斯变动 <b>${augCount}</b> 条`);
-        if (itemCount) parts.push(`装备变动 <b>${itemCount}</b> 件`);
+        if (augCount) parts.push(t('augChangeCount', { n: augCount }));
+        if (itemCount) parts.push(t('itemChangeCount', { n: itemCount }));
         if (parts.length === 0) return;
 
-        document.getElementById('changes-banner-text').innerHTML = '🆕 侦测到官方数据更新：' + parts.join(' · ');
+        document.getElementById('changes-banner-text').innerHTML = t('changesDetected') + parts.join(' · ');
         document.getElementById('changes-banner').classList.add('show');
 
         // 组装详情模态框内容
@@ -1661,13 +1830,13 @@
             const block = (cls, label, names) => names.length
                 ? `<div class="chg-group-title ${cls}">${label}（${names.length}）</div><div class="chg-names">${names.map(escapeHtml).join('、')}</div>`
                 : '';
-            const html = block('added', '✚ 新增', diff.added) + block('changed', '✎ 改动', diff.changed) + block('removed', '✖ 移除', diff.removed);
+            const html = block('added', t('chgAdded'), diff.added) + block('changed', t('chgChanged'), diff.changed) + block('removed', t('chgRemoved'), diff.removed);
             return html ? `<div class="stats-section-title mt">${title}</div>` + html : '';
         }
         let body = '';
-        if (verChanged) body += `<div class="stats-section-title">🎮 游戏版本：${escapeHtml(oldVer)} → ${escapeHtml(newVer)}</div>`;
-        body += section('🔮 海克斯', aDiff) + section('⚔️ 装备', iDiff);
-        if (!body) body = '<div class="tl-empty">本次仅版本号变化，内容无差异</div>';
+        if (verChanged) body += `<div class="stats-section-title">${t('chgGameVer')}: ${escapeHtml(oldVer)} → ${escapeHtml(newVer)}</div>`;
+        body += section(t('chgAugs'), aDiff) + section(t('chgItems'), iDiff);
+        if (!body) body = `<div class="tl-empty">${t('chgOnlyVer')}</div>`;
         document.getElementById('changes-modal-body').innerHTML = body;
     }
 
@@ -1685,7 +1854,10 @@
     }
 
     function decodeMigrationCode(input) {
-        let s = (input || '').trim();
+        // 容错解析：清除所有空白（聊天工具传输长文本时常被插入换行导致解码失败）、
+        // 兼容粘贴完整链接、URL转义的 #、以及旧版带 AGT1: 前缀的迁移码
+        let s = (input || '').replace(/\s+/g, '');
+        s = s.replace('%23agt=', '#agt=');
         const hashIdx = s.indexOf('#agt=');
         if (hashIdx > -1) s = s.slice(hashIdx + 5);
         if (s.startsWith(MIGRATE_PREFIX)) s = s.slice(MIGRATE_PREFIX.length);
@@ -1726,14 +1898,14 @@
         document.getElementById('migrate-input').value = '';
 
         if (!records.length) {
-            qrBox.innerHTML = '<div class="tl-empty">暂无进度记录可迁移，先去吃一鸡！🐔</div>';
+            qrBox.innerHTML = `<div class="tl-empty">${t('migrateNone')}</div>`;
         } else if (typeof qrcode === 'undefined' || typeof LZString === 'undefined') {
-            qrBox.innerHTML = '<div class="tl-empty">二维码组件加载失败（首次需联网），请联网刷新后重试</div>';
+            qrBox.innerHTML = `<div class="tl-empty">${t('migrateLibFail')}</div>`;
         } else {
             const data = encodeMigrationCode();
             const isHosted = /^https?:$/.test(location.protocol);
-            const qrContent = isHosted ? `${location.origin}${location.pathname}#agt=${data}` : MIGRATE_PREFIX + data;
-            codeArea.value = MIGRATE_PREFIX + data;
+            const qrContent = isHosted ? `${location.origin}${location.pathname}#agt=${data}` : data;
+            codeArea.value = data; // 纯净迁移码，复制即用
 
             // M 级纠错优先；数据偏大时降级 L 以提高容量
             let svg = null;
@@ -1748,11 +1920,9 @@
             }
             if (svg) {
                 qrBox.innerHTML = `<div class="qr-wrap">${svg}</div>`;
-                tip.innerHTML = isHosted
-                    ? `共 <b>${records.length}</b> 条记录 · 用另一台设备的相机扫码，打开页面后自动提示导入`
-                    : `共 <b>${records.length}</b> 条记录 · 扫码后复制内容，粘贴到另一台设备的下方导入框`;
+                tip.innerHTML = t(isHosted ? 'migrateTipHosted' : 'migrateTipLocal', { n: records.length });
             } else {
-                qrBox.innerHTML = '<div class="tl-empty">进度数据太多，二维码装不下了 😅<br>请复制下方迁移码手动传输，或改用「💾 导出」文件迁移</div>';
+                qrBox.innerHTML = `<div class="tl-empty">${t('migrateTooBig')}</div>`;
             }
         }
         document.getElementById('migrate-modal').classList.add('show');
@@ -1760,11 +1930,11 @@
 
     function importMigrationCode(text) {
         const recs = decodeMigrationCode(text);
-        if (!recs) { showToast('⚠️ 迁移码无效或已损坏'); return; }
+        if (!recs) { showToast(t('toastCodeInvalid')); return; }
         const added = mergeRecords(recs);
         renderData(); updateStatsUI(); applyFilters();
         document.getElementById('migrate-modal').classList.remove('show');
-        showToast(`📲 迁移完成：合并 ${recs.length} 条记录，新增 ${added} 个英雄`);
+        showToast(t('toastMigrated', { a: recs.length, b: added }));
         if (added > 0 && typeof confetti !== 'undefined') confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
     }
 
@@ -1773,13 +1943,12 @@
         if (!location.hash.startsWith('#agt=')) return;
         const recs = decodeMigrationCode(location.hash);
         history.replaceState(null, '', location.pathname + location.search); // 立即清掉哈希，避免刷新重复触发
-        if (!recs) { showToast('⚠️ 链接中的迁移数据无效'); return; }
-        const ok = await showConfirmWithTimer('📲 发现迁移数据',
-            `检测到来自其他设备的 <b style="color:var(--gold)">${recs.length}</b> 条吃鸡记录。<br>确定合并到当前进度吗？（不会删除现有记录）`, false);
+        if (!recs) { showToast(t('hashInvalid')); return; }
+        const ok = await showConfirmWithTimer(t('hashFoundTitle'), t('hashFoundMsg', { n: recs.length }), false);
         if (ok) {
             const added = mergeRecords(recs);
             renderData(); updateStatsUI(); applyFilters();
-            showToast(`📲 迁移完成：新增 ${added} 个英雄记录`);
+            showToast(t('hashMerged', { n: added }));
             if (added > 0 && typeof confetti !== 'undefined') confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
         }
     }
@@ -1795,7 +1964,7 @@
         if (currentFilter !== 'All') pool = pool.filter(c => champRole(c) === currentFilter);
 
         if (pool.length === 0) {
-            showToast(roleLabel ? `🏆 ${roleLabel}已全部吃鸡，换个职业试试！` : '🏆 太强了！英雄池已清空！');
+            showToast(roleLabel ? t('toastRoleDone', { role: roleLabel }) : t('toastAllDone'));
             return;
         }
 
@@ -1828,7 +1997,7 @@
         });
 
         hint.classList.remove('show');
-        hint.textContent = (roleLabel ? `【${roleLabel}】限定 · ` : '') + '点击任意空白处前往英雄';
+        hint.textContent = (roleLabel ? t('tarotRolePrefix', { role: roleLabel }) : '') + t('tarotHint');
         tarotCanClose = false;
         document.getElementById('tarot-modal').classList.add('show');
 
@@ -1859,7 +2028,7 @@
             if (card) {
                 card.classList.add('random-highlight');
                 card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                showToast(`🎲 天命降临：这把就玩【${escapeHtml(card.dataset.name)}】！`);
+                showToast(t('toastTarot', { name: escapeHtml(card.dataset.name) }));
                 setTimeout(() => card.classList.remove('random-highlight'), 5000);
             }
         }, 150);
@@ -1869,16 +2038,21 @@
     // 移动端浏览器不支持网页触发下载（点下载链接会直接在当前页打开巨型图片，导致"回不来"），
     // 故触屏设备改为弹窗展示 + 长按保存；桌面端保持直接下载
     async function generatePoster() {
-        showToast('📸 正在绘制高清海报，请保持页面停留...');
+        showBusy(t('posterWorking'));
         const exportZone = document.getElementById('export-zone'); const toolbar = document.getElementById('control-toolbar');
         toolbar.style.display = 'none';
         try {
             const bg = getComputedStyle(document.body).getPropertyValue('--bg-color').trim() || '#0b0e13';
-            const canvas = await html2canvas(exportZone, { useCORS: true, backgroundColor: bg, scale: IS_TOUCH ? 1.2 : 1.5 });
+            // 看门狗：40 秒未完成判定失败并恢复界面，绝不让页面"卡死"
+            const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('poster timeout')), ms))]);
+            const canvas = await withTimeout(
+                html2canvas(exportZone, { useCORS: true, backgroundColor: bg, scale: IS_TOUCH ? 1 : 1.5, imageTimeout: 6000, logging: false }),
+                40000
+            );
             toolbar.style.display = 'block';
             await new Promise(resolve => {
                 canvas.toBlob(blob => {
-                    if (!blob) { showToast('❌ 海报生成失败'); resolve(); return; }
+                    if (!blob) { showToast(t('toastPosterFail')); resolve(); return; }
                     const url = URL.createObjectURL(blob);
                     if (IS_TOUCH) {
                         const img = document.getElementById('poster-img');
@@ -1890,13 +2064,13 @@
                         a.href = url; a.download = `Arena_God_Poster_${Date.now()}.png`;
                         a.click();
                         setTimeout(() => URL.revokeObjectURL(url), 60000);
-                        showToast('✅ 专属图鉴海报生成成功！');
+                        showToast(t('toastPosterOk'));
                     }
                     resolve();
                 }, 'image/png');
             });
-        } catch(e) { showToast('❌ 海报生成失败，请检查网络'); }
-        finally { toolbar.style.display = 'block'; }
+        } catch(e) { console.error(e); showToast(t('toastPosterFail')); }
+        finally { toolbar.style.display = 'block'; hideBusy(); }
     }
 
     function closePosterModal() {
@@ -1920,7 +2094,7 @@
         if (currentTab === 'champions') {
             if (!skillCache[itemId]) {
                 try {
-                    const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/${globalVersion}/data/zh_CN/champion/${itemId}.json`);
+                    const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/${globalVersion}/data/${DD_LANG}/champion/${itemId}.json`);
                     const data = await res.json(); const cData = data.data[itemId];
                     skillCache[itemId] = {
                         passive: { name: cData.passive.name, desc: cData.passive.description, img: `https://ddragon.leagueoflegends.com/cdn/${globalVersion}/img/passive/${cData.passive.image.full}` },
@@ -1945,7 +2119,7 @@
             const itm = appData.items.find(i => i.id === itemId);
             if (!itm) return;
             const catLabel = ITEM_CAT_LABEL[itm.cat] || '装备';
-            const priceLine = itm.price > 0 ? `💰 ${itm.price} 金币` : '✨ 竞技场专属 · 不可购买';
+            const priceLine = itm.price > 0 ? t('priceGold', { n: itm.price }) : t('pricePrismatic');
             tooltip.innerHTML = `<div class="tooltip-title">${escapeHtml(itemName)} <span style="font-size:0.8rem;color:var(--text-muted);font-weight:normal;">(${catLabel})</span></div><div class="tooltip-desc">${itm.rawDesc || escapeHtml(itm.desc)}</div><div class="tooltip-stat">${priceLine}</div>`;
         }
         moveTooltip(event);
@@ -2032,7 +2206,7 @@
     // ---------- 导入 / 导出 / 重置 ----------
     function exportData(){
         const data = {
-            version: 10.4,
+            version: 10.5,
             exportTime: new Date().toISOString(),
             champions: getCompleted(),   // 兼容旧格式
             records: getRecords()        // 新格式：含吃鸡日期
@@ -2040,7 +2214,7 @@
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href = url; a.download = 'Arena_God_Ultimate_Backup.json';
-        a.click(); URL.revokeObjectURL(url); showToast('💾 战绩进度已导出（含吃鸡日期）');
+        a.click(); URL.revokeObjectURL(url); showToast(t('toastExported'));
     }
 
     function handleImportFile(e) {
@@ -2056,26 +2230,26 @@
                 } else if (Array.isArray(json.completed)) {
                     saveRecords(json.completed.map(id => ({ id, ts: null })));
                 } else { throw new Error('format'); }
-                renderData(); updateStatsUI(); applyFilters(); showToast('📂 战绩进度导入成功！');
-            } catch { showToast('⚠️ 导入失败：文件格式不正确'); }
+                renderData(); updateStatsUI(); applyFilters(); showToast(t('toastImported'));
+            } catch { showToast(t('toastImportBad')); }
         };
         reader.readAsText(file); e.target.value = '';
     }
 
     async function resetData() {
         if(currentTab !== 'champions') return;
-        const confirmed = await showConfirmWithTimer('⚠️ 危险操作', '确定要<span style="color:var(--danger)">清空所有英雄的吃鸡记录与时间线</span>吗？', true);
-        if (confirmed) { saveRecords([]); renderData(); updateStatsUI(); applyFilters(); showToast('🗑️ 战绩记录已清空'); }
+        const confirmed = await showConfirmWithTimer(t('resetTitle'), t('resetMsg'), true);
+        if (confirmed) { saveRecords([]); renderData(); updateStatsUI(); applyFilters(); showToast(t('toastReset')); }
     }
 
     window.onload = init;
 </script>
 
 <div style="margin-top: 50px; padding: 20px; border-top: 1px solid var(--border-dark); color: var(--text-muted); font-size: 0.9rem; text-align: center;">
-    <h3>关于 Arena God Tracker</h3>
-    <p style="max-width: 800px; margin: 0 auto 10px auto; line-height: 1.6;">本工具专为《英雄联盟》斗魂竞技场玩家打造。海克斯图鉴与装备百科<strong>实时同步官方最新版本数据</strong>，吃鸡记录自动带日期并可在统计面板查看时间线与各职业完成度。支持塔罗抽卡（跟随职业筛选）、浅色/暗色主题切换，进度永久保存在本地。</p>
-    <p><i>本工具数据解析自 Riot Games 游戏公开包（经由 CommunityDragon 镜像），不隶属于 Riot Games 官方。第三方攻略链接归属 Op.gg / Blitz.gg 所有。</i></p>
-    <p style="margin-top: 15px; font-weight: bold; color: var(--gold-light);">Build: Ultimate V10.4 | 海克斯数据每 24 小时自动刷新</p>
+    <h3 data-i18n="footerTitle">关于 Arena God Tracker</h3>
+    <p style="max-width: 800px; margin: 0 auto 10px auto; line-height: 1.6;" data-i18n="footerP1"></p>
+    <p data-i18n="footerP2"></p>
+    <p style="margin-top: 15px; font-weight: bold; color: var(--gold-light);">Build: Ultimate V10.5 | 海克斯数据每 24 小时自动刷新</p>
 </div>
 
 </body>
