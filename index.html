@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="英雄联盟斗魂竞技场吃鸡进度追踪器：全英雄收集进度、海克斯图鉴、装备百科、塔罗抽卡与战绩时间线。数据实时同步官方版本。">
     <meta name="theme-color" content="#0b0e13">
-    <title>Arena God Tracker - Ultimate V10.9</title>
+    <title>Arena God Tracker - Ultimate V11.0</title>
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏆</text></svg>">
     <link rel="manifest" href="manifest.webmanifest">
@@ -132,6 +132,7 @@
         .lang-option.active { color: var(--accent); }
         .lang-option.active::after { content: '✓'; font-weight: 800; }
         .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; transition: opacity 0.3s; }
+        .items-note { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px; }
         .filter-btn { background-color: transparent; border: 1px solid var(--border-dark); color: var(--text-muted); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: all 0.2s; }
         .filter-btn:hover { border-color: var(--text-muted); color: var(--text-main); }
         .filter-btn.active { background-color: var(--bg-panel); color: var(--accent); border-color: var(--accent); }
@@ -292,7 +293,9 @@
         #player-id-clear { position: absolute; right: 11px; cursor: pointer; color: var(--text-muted); font-size: 0.82rem; display: none; padding: 2px; }
         #player-id-clear:hover { color: var(--accent); }
         .player-id-wrap.has-value #player-id-clear { display: block; }
-        .stats-player { text-align: center; color: var(--gold-light); font-weight: 800; font-size: 1.05rem; margin-bottom: 14px; letter-spacing: 0.5px; }
+        .stats-player { text-align: center; color: var(--gold); font-weight: 900; font-size: 1.25rem; margin-bottom: 14px; letter-spacing: 1px; text-shadow: 0 1px 8px rgba(212,175,55,0.35); }
+        .stats-capture .stats-player { font-size: 1.45rem; margin: 6px 0 18px 0; }
+        .stats-capture .stats-modal-body { padding-bottom: 26px; }
         .stats-modal-box { width: min(480px, 92vw); }
         .stats-modal-body { text-align: left; max-height: 70vh; overflow-y: auto; padding: 20px; }
         .stats-section-title { font-size: 0.95rem; font-weight: 800; color: var(--gold); margin: 0 0 12px 0; letter-spacing: 1px; }
@@ -458,6 +461,7 @@
                 <button class="filter-btn" data-filter="Silver" data-i18n="tierSilver">白银 (Silver)</button>
                 <button class="filter-btn" data-filter="Special" data-i18n="tierSpecial">特殊 (Special)</button>
             </div>
+            <div class="items-note" id="items-note" style="display: none;" data-i18n="itemsNote"></div>
             <div class="filter-bar" id="filter-bar-items" style="display: none;">
                 <button class="filter-btn active" data-filter="All" data-i18n="catAll">全部装备</button>
                 <button class="filter-btn" data-filter="Prismatic" data-i18n="catPrismatic">棱镜装备</button>
@@ -591,8 +595,17 @@
 
 <script>
     // ==========================================================================
-    // Arena God Tracker V10.9 — 实时数据 + 主题系统 + 战绩记录引擎
+    // Arena God Tracker V11.0 — 实时数据 + 主题系统 + 战绩记录引擎
     //
+    // V11.0 变更摘要（装备数据重构 + 统计图修复）：
+    //  [重构] 装备数据源切换为 DDragon item.json 并按 maps["30"]（斗魂竞技场地图）过滤：
+    //         只收录当前版本竞技场实际启用的装备，根治"混入已删除/非竞技场装备"；
+    //         棱镜装备识别改为"竞技场启用+不可购买+无价格的成装"（铁砧抽取特征）；
+    //         原 LCU 目录降级为备用源（仅主源异常时启用，带数量健全性检查）
+    //  [修复] 统计"保存为图片"生成失败：改为克隆到屏外静态容器后捕获，
+    //         避开 html2canvas 三大雷区（fixed 定位/弹窗动画/滚动裁剪）
+    //  [界面] 统计图中玩家名称加大加金凸显；截图不再包含 ✕ 与按钮
+    //  [界面] 装备页新增小字说明：清单按竞技场过滤、数值为基础值
     // V10.9 变更摘要：
     //  [移动] 筛选按钮改为 4 列等宽网格，"辅助"不再孤零零占一行
     //  [功能] 排序三档循环：🔄 默认 → ⬆️ 置顶（已吃鸡在前，方便做海报）→ ⬇️ 沉底
@@ -670,6 +683,7 @@
         catAll:'全部装备', catPrismatic:'棱镜装备', catLegendary:'神话/传说', catBoots:'鞋子', catConsumable:'消耗品', catOther:'其他',
         statsTitle:'📊 战绩统计', roleProgress:'⚔️ 职业进度', timelineTitle:'🕑 吃鸡时间线',
         btnStatsExport:'📸 保存为图片', playerPh:'🎮 游戏ID（如 名称#JP1）',
+        itemsNote:'⚖️ 装备清单已按当前版本竞技场（地图30）过滤；数值为通用基础值，竞技场内另有平衡性调整，以游戏内为准',
         timelineEmpty:'还没有吃鸡记录，去开一把竞技场吧！🐔', earlyRecord:'早期记录',
         migrateTitle:'📱 进度迁移', migrateStep1:'① 在这台设备生成', migrateStep2:'② 在另一台设备导入',
         migrateCopy:'📋 复制迁移码', migrateImport:'📲 导入并合并',
@@ -722,6 +736,7 @@
         catAll:'All items', catPrismatic:'Prismatic', catLegendary:'Legendary', catBoots:'Boots', catConsumable:'Consumables', catOther:'Other',
         statsTitle:'📊 Statistics', roleProgress:'⚔️ Progress by role', timelineTitle:'🕑 Win timeline',
         btnStatsExport:'📸 Save as image', playerPh:'🎮 Player ID (e.g. Name#TAG)',
+        itemsNote:'⚖️ Item list is filtered to current-patch Arena (map 30); values are base stats — Arena applies separate balancing, in-game values prevail',
         timelineEmpty:'No wins recorded yet — go play a round! 🐔', earlyRecord:'Earlier record',
         migrateTitle:'📱 Transfer progress', migrateStep1:'① Generate on this device', migrateStep2:'② Import on the other device',
         migrateCopy:'📋 Copy code', migrateImport:'📲 Import & merge',
@@ -1217,7 +1232,54 @@
         // 2. 装备（latest，跟随当前版本；按 棱镜/传说/鞋子/消耗品/其他 分类）
         try {
             appData.items = await loadDataWithCache(itemCacheKey, async () => {
-                // 主路径失败时退到 default（英文）目录，保证任何情况下至少有数据
+                // —— 主数据源：DDragon item.json ——
+                // 关键字段 maps["30"]（30 = 斗魂竞技场）：只收录当前版本竞技场实际启用的装备，
+                // 根治"图鉴混入非竞技场装备/已删除装备"的问题
+                try {
+                    const dd = await fetch(`https://ddragon.leagueoflegends.com/cdn/${globalVersion}/data/${DD_LANG}/item.json`);
+                    if (dd.ok) {
+                        const ddJson = await dd.json();
+                        const out = [];
+                        for (const [id, it] of Object.entries(ddJson.data || {})) {
+                            if (!it.maps || it.maps['30'] !== true) continue; // 非竞技场装备一票否决
+                            const name = it.name || '';
+                            if (!name || name.startsWith('@') || /^测试|^Test/i.test(name)) continue;
+                            const tags = it.tags || [];
+                            if (tags.includes('Trinket')) continue;
+                            const gold = it.gold || {};
+                            const desc = it.description || '';
+                            let cat = null;
+                            if (tags.includes('Boots')) cat = 'Boots';
+                            else if (tags.includes('Consumable')) cat = gold.total > 0 ? 'Consumable' : null;
+                            // 棱镜装备 = 竞技场启用 + 不可购买 + 无价格的成装（铁砧抽取获得）
+                            else if (gold.purchasable === false && (gold.total || 0) === 0 && desc.length > 40) cat = 'Prismatic';
+                            else if ((gold.total || 0) >= 2000) cat = 'Legendary';
+                            else if ((gold.total || 0) > 0 && gold.purchasable !== false) cat = 'Other'; // 竞技场在售小件/中间件
+                            if (!cat) continue;
+                            out.push({
+                                id: String(id), name, price: gold.total || 0, cat,
+                                rawDesc: desc, desc: desc.replace(/<[^>]+>/g, ''),
+                                img: `https://ddragon.leagueoflegends.com/cdn/${globalVersion}/img/item/${(it.image && it.image.full) ? it.image.full : id + '.png'}`
+                            });
+                        }
+                        // 同名去重：棱镜优先，其次取描述更完整者
+                        const uniq = new Map();
+                        out.forEach(o => {
+                            const e = uniq.get(o.name);
+                            if (!e || (o.cat === 'Prismatic' && e.cat !== 'Prismatic') ||
+                                (e.cat === o.cat && o.rawDesc.length > e.rawDesc.length)) uniq.set(o.name, o);
+                        });
+                        const list = [...uniq.values()];
+                        // 健全性检查：竞技场装备总量过少说明数据异常，转用备用源
+                        if (list.length >= 30) {
+                            if (!list.some(i => i.cat === 'Prismatic')) console.warn('⚠️ DDragon 未识别出棱镜装备，请检查识别规则');
+                            return list;
+                        }
+                        console.warn(`⚠️ DDragon 竞技场装备数量异常(${list.length})，回退 LCU 数据源`);
+                    }
+                } catch(e) { console.warn('DDragon 装备源失败，回退 LCU：', e); }
+
+                // —— 备用数据源：LCU 客户端目录（无地图过滤，仅主源失败时使用）——
                 let res = null;
                 for (const loc of [...new Set([CD_ITEM_LANG, 'default'])]) {
                     res = await fetch(`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/${loc}/v1/items.json`).catch(() => null);
@@ -1623,6 +1685,7 @@
         document.getElementById('filter-bar-champions').style.display = isChamp ? '' : 'none';
         document.getElementById('filter-bar-augments').style.display = tab === 'augments' ? '' : 'none';
         document.getElementById('filter-bar-items').style.display = tab === 'items' ? '' : 'none';
+        document.getElementById('items-note').style.display = tab === 'items' ? 'block' : 'none';
 
         document.getElementById('stats-box-display').style.display = isChamp ? 'inline-block' : 'none';
         document.getElementById('progress-container-display').style.display = isChamp ? 'block' : 'none';
@@ -2258,16 +2321,24 @@
     }
 
     // 统计面板导出：临时展开滚动区域，整版捕获后还原
+    // 统计面板导出：克隆到屏外静态容器后捕获
+    // （直接截弹窗会踩 html2canvas 三大雷区：fixed 定位、弹出动画 transform、滚动裁剪）
     async function exportStatsImage() {
-        const box = document.querySelector('#stats-modal .stats-modal-box');
-        const body = document.querySelector('#stats-modal .stats-modal-body');
-        const exportBtn = document.getElementById('btn-stats-export');
-        if (!box) return;
+        const srcBox = document.querySelector('#stats-modal .stats-modal-box');
+        if (!srcBox) return;
         showBusy(t('posterWorking'));
-        const savedBodyMax = body.style.maxHeight, savedBodyOv = body.style.overflowY, savedBoxMax = box.style.maxHeight;
+        const clone = srcBox.cloneNode(true);
+        const cx = clone.querySelector('.modal-close-x'); if (cx) cx.remove();           // 截图不要 ✕
+        const eb = clone.querySelector('#btn-stats-export'); if (eb && eb.parentElement) eb.parentElement.remove(); // 也不要按钮
+        const cbody = clone.querySelector('.stats-modal-body');
+        if (cbody) { cbody.style.maxHeight = 'none'; cbody.style.overflowY = 'visible'; } // 展开完整时间线
+        clone.classList.add('stats-capture');                                             // 截图专属增强样式（名称凸显）
+        clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));           // 防 ID 重复
+        clone.style.cssText += ';position:absolute;left:-99999px;top:0;width:480px;max-width:none;max-height:none;animation:none;transform:none;margin:0;';
+        document.body.appendChild(clone);
+        let ticker = null;
         try {
-            // 预载时间线头像（小图，很快），真实进度 0→50%
-            const imgs = [...box.querySelectorAll('img')];
+            const imgs = [...clone.querySelectorAll('img')];
             let done = 0;
             await Promise.all(imgs.map(img => new Promise(res => {
                 let s = false;
@@ -2278,30 +2349,20 @@
                 img.addEventListener('error', fin, { once: true });
                 setTimeout(fin, 4000);
             })));
-
-            // 展开滚动区域，让长时间线完整入图
-            body.style.maxHeight = 'none'; body.style.overflowY = 'visible'; box.style.maxHeight = 'none';
-            exportBtn.style.visibility = 'hidden';
-
-            busyProgress(55, t('posterStageDraw', { n: imgs.length }));
-            let pct = 55;
-            const ticker = setInterval(() => { pct = Math.min(92, pct + 1.2); busyProgress(pct, null); }, 200);
-
+            let pct = 50;
+            busyProgress(pct, t('posterStageDraw', { n: imgs.length }));
+            ticker = setInterval(() => { pct = Math.min(92, pct + 1.2); busyProgress(pct, null); }, 200);
             const bg = getComputedStyle(document.body).getPropertyValue('--bg-panel').trim() || '#181d25';
             const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('stats timeout')), ms))]);
             const canvas = await withTimeout(
-                html2canvas(box, { useCORS: true, backgroundColor: bg, scale: IS_TOUCH ? 1.5 : 2, imageTimeout: 5000, logging: false }),
+                html2canvas(clone, { useCORS: true, backgroundColor: bg, scale: 2, imageTimeout: 5000, logging: false }),
                 45000
             );
-            clearInterval(ticker);
+            clearInterval(ticker); ticker = null;
             busyProgress(95, t('posterStageExport'));
             await deliverImage(canvas, 'Arena_Stats');
         } catch(e) { console.error(e); showToast(t('toastPosterFail')); }
-        finally {
-            body.style.maxHeight = savedBodyMax; body.style.overflowY = savedBodyOv; box.style.maxHeight = savedBoxMax;
-            exportBtn.style.visibility = '';
-            hideBusy();
-        }
+        finally { if (ticker) clearInterval(ticker); clone.remove(); hideBusy(); }
     }
 
     function closePosterModal() {
@@ -2437,7 +2498,7 @@
     // ---------- 导入 / 导出 / 重置 ----------
     function exportData(){
         const data = {
-            version: 10.9,
+            version: 11.0,
             exportTime: new Date().toISOString(),
             champions: getCompleted(),   // 兼容旧格式
             records: getRecords()        // 新格式：含吃鸡日期
@@ -2486,7 +2547,7 @@
     <h3 data-i18n="footerTitle">关于 Arena God Tracker</h3>
     <p style="max-width: 800px; margin: 0 auto 10px auto; line-height: 1.6;" data-i18n="footerP1"></p>
     <p data-i18n="footerP2"></p>
-    <p style="margin-top: 15px; font-weight: bold; color: var(--gold-light);">Build: Ultimate V10.9 | 海克斯数据每 24 小时自动刷新</p>
+    <p style="margin-top: 15px; font-weight: bold; color: var(--gold-light);">Build: Ultimate V11.0 | 海克斯数据每 24 小时自动刷新</p>
 </div>
 
 </body>
