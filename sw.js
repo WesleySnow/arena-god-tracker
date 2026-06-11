@@ -2,7 +2,7 @@
 // 策略：
 //   同源应用外壳（HTML/JS/图标）→ 缓存优先 + 后台静默更新（秒开，下次访问拿到新版）
 //   跨域数据与图片（DDragon/CDragon/攻略站图标）→ 网络优先，失败回退缓存（离线可看最后一次数据）
-const CACHE_VERSION = 'agt-v10.3';
+const CACHE_VERSION = 'agt-v10.4';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const RUNTIME_CACHE = CACHE_VERSION + '-runtime';
 const SHELL_FILES = [

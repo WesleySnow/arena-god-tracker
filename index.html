@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="英雄联盟斗魂竞技场吃鸡进度追踪器：全英雄收集进度、海克斯图鉴、装备百科、塔罗抽卡与战绩时间线。数据实时同步官方版本。">
     <meta name="theme-color" content="#0b0e13">
-    <title>Arena God Tracker - Ultimate V10.3</title>
+    <title>Arena God Tracker - Ultimate V10.4</title>
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏆</text></svg>">
     <link rel="manifest" href="manifest.webmanifest">
@@ -347,6 +347,13 @@
             .view-list .data-card { flex-direction: column; text-align: center; gap: 8px; }
             .data-container.view-list { grid-template-columns: repeat(auto-fill, minmax(100%, 1fr)); }
             #tooltip { width: 90vw; max-width: 350px; font-size: 0.9rem; padding: 12px; box-sizing: border-box;}
+            #tooltip .tooltip-title { font-size: 1rem; margin-bottom: 8px; padding-bottom: 6px; }
+            #tooltip .tooltip-desc { font-size: 0.76rem; line-height: 1.45; }
+            #tooltip .skill-content b { font-size: 0.84rem; }
+            #tooltip .skill-icon { width: 28px; height: 28px; }
+            #tooltip .skill-row { margin-bottom: 8px; }
+            /* 长按看技能：禁止选中文字和系统图片菜单干扰 */
+            #container-champions .data-card { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
             .skill-row { gap: 8px; }
             h1 { font-size: 1.6rem; } .stats-box { font-size: 1rem; padding: 10px 20px; }
             .progress-container { height: 18px; } .progress-text { line-height: 18px; font-size: 0.75rem; }
@@ -488,6 +495,17 @@
     </div>
 </div>
 
+<!-- 海报展示模态框（移动端：长按保存到相册） -->
+<div id="poster-modal" class="modal-overlay">
+    <div class="modal-box" style="width: auto; max-width: 94vw;">
+        <div class="modal-header">📸 海报已生成 <span class="modal-close-x" id="poster-close">✕</span></div>
+        <div class="modal-body" style="max-height: 74vh; overflow: auto; padding: 12px;">
+            <img id="poster-img" alt="战绩海报" style="max-width: 100%; height: auto; border-radius: 8px; display: block;">
+            <div style="margin-top: 10px; color: var(--text-muted); font-size: 0.85rem;">长按图片 → 保存到相册 / 发送给好友</div>
+        </div>
+    </div>
+</div>
+
 <!-- 进度迁移模态框（二维码 / 迁移码） -->
 <div id="migrate-modal" class="modal-overlay">
     <div class="modal-box stats-modal-box">
@@ -521,8 +539,12 @@
 
 <script>
     // ==========================================================================
-    // Arena God Tracker V10.3 — 实时数据 + 主题系统 + 战绩记录引擎
+    // Arena God Tracker V10.4 — 实时数据 + 主题系统 + 战绩记录引擎
     //
+    // V10.4 变更摘要（移动端体验专项·二）：
+    //  [移动] 修复海报生成后"回不来"：手机浏览器不支持网页下载，改为弹窗展示+长按保存
+    //  [移动] 长按英雄卡显示技能说明（紧凑字号），松手即关；滚动手势不会误触发
+    //  [移动] 吃鸡确认框中的攻略链接改为中文按钮（📖 OP.GG攻略 / 📊 胜率·出装 / ⚡ Blitz攻略）
     // V10.3 变更摘要（移动端体验专项）：
     //  [移动] 英雄网格一排6个（海克斯/装备保持约4个保证图标可辨）
     //  [移动] 防误触：触屏标记吃鸡前先弹确认框，框内附 OP.GG/Lolalytics/Blitz 直达
@@ -734,6 +756,7 @@
     // 触屏设备：点按会触发模拟的鼠标悬停事件，需要走专门的交互逻辑
     const IS_TOUCH = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
     let touchTooltipCardId = null; // 触屏模式下当前展示提示的卡片
+    let suppressNextClick = false; // 长按结束后吞掉紧随其后的点击，防止误触发吃鸡确认
 
     const ROLE_FILTERS = { "All": "全部英雄", "Fighter": "战士", "Mage": "法师", "Assassin": "刺客", "Marksman": "射手", "Tank": "坦克", "Support": "辅助" };
     const ROLE_ORDER = ["Fighter", "Mage", "Assassin", "Marksman", "Tank", "Support"];
@@ -1136,7 +1159,11 @@
                 if (e.target.closest('a')) return; // 外链不拦截
                 const card = e.target.closest('.data-card');
                 if (!card) return;
-                if (tab === 'champions') { toggleStatus(card.dataset.id, card.dataset.name); return; }
+                if (tab === 'champions') {
+                    if (suppressNextClick) { suppressNextClick = false; return; }
+                    toggleStatus(card.dataset.id, card.dataset.name);
+                    return;
+                }
                 if (IS_TOUCH) {
                     // 点按切换说明显示
                     if (touchTooltipCardId === card.dataset.id && tooltip.style.display === 'block') {
@@ -1173,6 +1200,40 @@
                     touchTooltipCardId = null; hideTooltip();
                 }
             });
+
+            // 触屏：长按英雄卡显示技能说明，松手即关闭；移动手指（滚动）则取消
+            const champContainer = document.getElementById('container-champions');
+            let lpTimer = null, lpActive = false, lpStart = null;
+            champContainer.addEventListener('contextmenu', e => e.preventDefault()); // 阻止长按弹出系统图片菜单
+            champContainer.addEventListener('touchstart', e => {
+                const card = e.target.closest('.data-card');
+                if (!card) return;
+                const t = e.touches[0];
+                lpStart = { x: t.pageX, y: t.pageY };
+                clearTimeout(lpTimer);
+                lpTimer = setTimeout(() => {
+                    lpActive = true;
+                    showContextTooltip({ pageX: lpStart.x, pageY: lpStart.y }, card.dataset.id, card.dataset.name);
+                }, 450);
+            }, { passive: true });
+            champContainer.addEventListener('touchmove', e => {
+                if (!lpStart) return;
+                const t = e.touches[0];
+                if (Math.abs(t.pageX - lpStart.x) > 12 || Math.abs(t.pageY - lpStart.y) > 12) {
+                    clearTimeout(lpTimer); lpTimer = null;
+                    if (lpActive) { hideTooltip(); lpActive = false; }
+                }
+            }, { passive: true });
+            const endLongPress = () => {
+                clearTimeout(lpTimer); lpTimer = null; lpStart = null;
+                if (lpActive) {
+                    hideTooltip(); lpActive = false;
+                    suppressNextClick = true; // 长按松手后浏览器可能补发一次 click，吞掉它
+                    setTimeout(() => { suppressNextClick = false; }, 400);
+                }
+            };
+            champContainer.addEventListener('touchend', endLongPress);
+            champContainer.addEventListener('touchcancel', endLongPress);
         }
 
         // 统计模态框关闭
@@ -1184,6 +1245,12 @@
         // 胜率排行（外部实时数据直达）
         document.getElementById('btn-tier').addEventListener('click', () => {
             window.open('https://lolalytics.com/lol/tierlist/arena/', '_blank', 'noopener');
+        });
+
+        // 海报模态框关闭
+        document.getElementById('poster-close').addEventListener('click', closePosterModal);
+        document.getElementById('poster-modal').addEventListener('click', e => {
+            if (e.target === e.currentTarget) closePosterModal();
         });
 
         // 进度迁移
@@ -1239,6 +1306,8 @@
                     searchInput.value = ''; currentSearchKeyword = ''; searchInput.blur(); applyFilters();
                 } else if (document.getElementById('tarot-modal').classList.contains('show')) {
                     closeTarotModal();
+                } else if (document.getElementById('poster-modal').classList.contains('show')) {
+                    closePosterModal();
                 } else if (document.getElementById('migrate-modal').classList.contains('show')) {
                     document.getElementById('migrate-modal').classList.remove('show');
                 } else if (document.getElementById('changes-modal').classList.contains('show')) {
@@ -1450,12 +1519,13 @@
     // ---------- 吃鸡标记 ----------
     function championGuideLinksHtml(champId) {
         const lower = encodeURIComponent(champId.toLowerCase());
-        const style = 'color:var(--accent);font-weight:600;text-decoration:none;font-size:0.9rem;';
-        return `<div style="display:flex;gap:20px;justify-content:center;margin-top:14px;">
-            <a href="https://op.gg/lol/modes/arena/${lower}/build" target="_blank" rel="noopener" style="${style}">OP.GG</a>
-            <a href="https://lolalytics.com/lol/${lower}/arena/build/" target="_blank" rel="noopener" style="${style}">Lolalytics</a>
-            <a href="https://blitz.gg/ja/lol/champions/${encodeURIComponent(champId)}/arena" target="_blank" rel="noopener" style="${style}">Blitz</a>
-        </div>`;
+        const btn = 'display:inline-block;padding:7px 12px;border:1px solid var(--border-dark);border-radius:8px;color:var(--text-main);background:var(--bg-hover);text-decoration:none;font-size:0.82rem;font-weight:600;';
+        return `<div style="display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap;">
+            <a href="https://op.gg/lol/modes/arena/${lower}/build" target="_blank" rel="noopener" style="${btn}">📖 OP.GG 攻略</a>
+            <a href="https://lolalytics.com/lol/${lower}/arena/build/" target="_blank" rel="noopener" style="${btn}">📊 胜率·出装</a>
+            <a href="https://blitz.gg/ja/lol/champions/${encodeURIComponent(champId)}/arena" target="_blank" rel="noopener" style="${btn}">⚡ Blitz 攻略</a>
+        </div>
+        <div style="margin-top:8px;font-size:0.74rem;color:var(--text-muted);">查看该英雄的海克斯 / 出装 / 加点推荐与实时胜率</div>`;
     }
 
     async function toggleStatus(itemId, itemName) {
@@ -1796,16 +1866,48 @@
     }
 
     // ---------- 海报 ----------
+    // 移动端浏览器不支持网页触发下载（点下载链接会直接在当前页打开巨型图片，导致"回不来"），
+    // 故触屏设备改为弹窗展示 + 长按保存；桌面端保持直接下载
     async function generatePoster() {
         showToast('📸 正在绘制高清海报，请保持页面停留...');
         const exportZone = document.getElementById('export-zone'); const toolbar = document.getElementById('control-toolbar');
         toolbar.style.display = 'none';
         try {
             const bg = getComputedStyle(document.body).getPropertyValue('--bg-color').trim() || '#0b0e13';
-            const canvas = await html2canvas(exportZone, { useCORS: true, backgroundColor: bg, scale: 1.5 });
-            const link = document.createElement('a'); link.download = `Arena_God_Poster_${new Date().getTime()}.png`;
-            link.href = canvas.toDataURL('image/png'); link.click(); showToast('✅ 专属图鉴海报生成成功！');
-        } catch(e) { showToast('❌ 海报生成失败，请检查网络'); } finally { toolbar.style.display = 'block'; }
+            const canvas = await html2canvas(exportZone, { useCORS: true, backgroundColor: bg, scale: IS_TOUCH ? 1.2 : 1.5 });
+            toolbar.style.display = 'block';
+            await new Promise(resolve => {
+                canvas.toBlob(blob => {
+                    if (!blob) { showToast('❌ 海报生成失败'); resolve(); return; }
+                    const url = URL.createObjectURL(blob);
+                    if (IS_TOUCH) {
+                        const img = document.getElementById('poster-img');
+                        if (img.dataset.bloburl) URL.revokeObjectURL(img.dataset.bloburl);
+                        img.src = url; img.dataset.bloburl = url;
+                        document.getElementById('poster-modal').classList.add('show');
+                    } else {
+                        const a = document.createElement('a');
+                        a.href = url; a.download = `Arena_God_Poster_${Date.now()}.png`;
+                        a.click();
+                        setTimeout(() => URL.revokeObjectURL(url), 60000);
+                        showToast('✅ 专属图鉴海报生成成功！');
+                    }
+                    resolve();
+                }, 'image/png');
+            });
+        } catch(e) { showToast('❌ 海报生成失败，请检查网络'); }
+        finally { toolbar.style.display = 'block'; }
+    }
+
+    function closePosterModal() {
+        const modal = document.getElementById('poster-modal');
+        const img = document.getElementById('poster-img');
+        modal.classList.remove('show');
+        // 延迟回收，避免系统"保存图片"弹层还在引用
+        setTimeout(() => {
+            if (img.dataset.bloburl) { URL.revokeObjectURL(img.dataset.bloburl); delete img.dataset.bloburl; }
+            img.src = '';
+        }, 2000);
     }
 
     // ---------- 悬浮提示 ----------
@@ -1930,7 +2032,7 @@
     // ---------- 导入 / 导出 / 重置 ----------
     function exportData(){
         const data = {
-            version: 10.3,
+            version: 10.4,
             exportTime: new Date().toISOString(),
             champions: getCompleted(),   // 兼容旧格式
             records: getRecords()        // 新格式：含吃鸡日期
@@ -1973,7 +2075,7 @@
     <h3>关于 Arena God Tracker</h3>
     <p style="max-width: 800px; margin: 0 auto 10px auto; line-height: 1.6;">本工具专为《英雄联盟》斗魂竞技场玩家打造。海克斯图鉴与装备百科<strong>实时同步官方最新版本数据</strong>，吃鸡记录自动带日期并可在统计面板查看时间线与各职业完成度。支持塔罗抽卡（跟随职业筛选）、浅色/暗色主题切换，进度永久保存在本地。</p>
     <p><i>本工具数据解析自 Riot Games 游戏公开包（经由 CommunityDragon 镜像），不隶属于 Riot Games 官方。第三方攻略链接归属 Op.gg / Blitz.gg 所有。</i></p>
-    <p style="margin-top: 15px; font-weight: bold; color: var(--gold-light);">Build: Ultimate V10.3 | 海克斯数据每 24 小时自动刷新</p>
+    <p style="margin-top: 15px; font-weight: bold; color: var(--gold-light);">Build: Ultimate V10.4 | 海克斯数据每 24 小时自动刷新</p>
 </div>
 
 </body>
