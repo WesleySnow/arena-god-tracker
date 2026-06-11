@@ -2,7 +2,7 @@
 // 策略：
 //   同源应用外壳（HTML/JS/图标）→ 缓存优先 + 后台静默更新（秒开，下次访问拿到新版）
 //   跨域数据与图片（DDragon/CDragon/攻略站图标）→ 网络优先，失败回退缓存（离线可看最后一次数据）
-const CACHE_VERSION = 'agt-v10.5';
+const CACHE_VERSION = 'agt-v10.8';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 const RUNTIME_CACHE = CACHE_VERSION + '-runtime';
 const SHELL_FILES = [
@@ -35,6 +35,21 @@ self.addEventListener('fetch', e => {
     const req = e.request;
     if (req.method !== 'GET') return;
     const url = new URL(req.url);
+
+    // 页面导航（HTML 本体）：网络优先 —— 联网永远拿最新版本，断网才回退缓存
+    // 根治"更新后必须刷新两次才能看到新版"的问题
+    if (req.mode === 'navigate' || req.destination === 'document') {
+        e.respondWith(
+            fetch(req).then(res => {
+                if (res && res.ok) {
+                    const copy = res.clone();
+                    caches.open(SHELL_CACHE).then(c => c.put(req, copy));
+                }
+                return res;
+            }).catch(() => caches.match(req).then(hit => hit || caches.match('./index.html')))
+        );
+        return;
+    }
 
     if (url.origin === location.origin) {
         // 应用外壳：缓存优先，同时后台更新缓存

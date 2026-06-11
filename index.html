@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="英雄联盟斗魂竞技场吃鸡进度追踪器：全英雄收集进度、海克斯图鉴、装备百科、塔罗抽卡与战绩时间线。数据实时同步官方版本。">
     <meta name="theme-color" content="#0b0e13">
-    <title>Arena God Tracker - Ultimate V10.5</title>
+    <title>Arena God Tracker - Ultimate V10.8</title>
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏆</text></svg>">
     <link rel="manifest" href="manifest.webmanifest">
@@ -96,8 +96,6 @@
         .progress-fill { height: 100%; background: linear-gradient(90deg, #b8860b, #d4af37); width: 0%; transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .progress-text { position: absolute; width: 100%; text-align: center; font-size: 0.8rem; line-height: 22px; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.6); color: #fff; top: 0; left: 0; pointer-events: none; }
         body[data-theme="light"] .progress-text { color: var(--text-main); text-shadow: none; }
-        .progress-tick { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(128,128,128,0.35); pointer-events: none; }
-        .progress-tick::after { content: attr(data-label); position: absolute; top: 100%; left: 50%; transform: translateX(-50%); font-size: 0.6rem; color: var(--text-muted); margin-top: 2px; }
 
         /* ==========================================================================
            3. 导航与控制台
@@ -125,6 +123,14 @@
         .tool-btn.poster-btn { background: linear-gradient(45deg, #d4af37, #f3d473); border-color: transparent; color: #000; }
         .tool-btn.poster-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(212, 175, 55, 0.4); color: #000;}
         .tool-btn.icon-btn { padding: 10px 12px; font-size: 1rem; }
+        /* 语言下拉菜单（自绘，跟随主题） */
+        .lang-wrap { position: relative; display: flex; }
+        .lang-menu { position: absolute; top: calc(100% + 6px); left: 0; min-width: 132px; background: var(--bg-panel); border: 1px solid var(--border-dark); border-radius: 8px; box-shadow: 0 8px 22px rgba(0,0,0,0.35); z-index: 300; display: none; overflow: hidden; }
+        .lang-menu.show { display: block; }
+        .lang-option { padding: 10px 16px; font-size: 0.9rem; font-weight: 600; color: var(--text-main); cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; transition: 0.15s; }
+        .lang-option:hover { background: var(--bg-hover); color: var(--gold); }
+        .lang-option.active { color: var(--accent); }
+        .lang-option.active::after { content: '✓'; font-weight: 800; }
         .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; transition: opacity 0.3s; }
         .filter-btn { background-color: transparent; border: 1px solid var(--border-dark); color: var(--text-muted); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: all 0.2s; }
         .filter-btn:hover { border-color: var(--text-muted); color: var(--text-main); }
@@ -239,8 +245,13 @@
 
         #busy-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.72); z-index: 10008; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px; color: #fff; font-size: 0.95rem; text-align: center; padding: 0 24px; }
         #busy-overlay.show { display: flex; }
-        .busy-spinner { width: 42px; height: 42px; border: 4px solid rgba(255,255,255,0.25); border-top-color: #d4af37; border-radius: 50%; animation: busy-spin 0.9s linear infinite; }
-        @keyframes busy-spin { to { transform: rotate(360deg); } }
+        .busy-icon { font-size: 2.6rem; animation: busy-bob 1.2s ease-in-out infinite; }
+        @keyframes busy-bob { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-8px) rotate(4deg); } }
+        #busy-text { font-size: 1.05rem; font-weight: 700; }
+        .busy-bar-track { width: min(300px, 70vw); height: 12px; background: rgba(255,255,255,0.18); border-radius: 6px; overflow: hidden; }
+        .busy-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #b8860b, #d4af37, #f5d061); border-radius: 6px; transition: width 0.25s ease; }
+        #busy-stage { font-size: 0.88rem; color: rgba(255,255,255,0.85); min-height: 1.2em; }
+        #busy-pct { font-size: 0.8rem; color: rgba(255,255,255,0.6); }
         #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10002; display: flex; flex-direction: column; gap: 10px; pointer-events: none;}
         .toast { background-color: var(--bg-panel); color: var(--text-main); padding: 12px 24px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); border: 1px solid var(--border-dark); font-size: 0.95rem; opacity: 0; transform: translateY(20px); transition: all 0.3s ease; text-align: center;}
         .toast.show { opacity: 1; transform: translateY(0); }
@@ -380,9 +391,6 @@
         </div>
         <div class="progress-container" id="progress-container-display">
             <div class="progress-fill" id="progressFill"></div>
-            <div class="progress-tick" style="left:25%" data-label="25"></div>
-            <div class="progress-tick" style="left:50%" data-label="50"></div>
-            <div class="progress-tick" style="left:75%" data-label="75"></div>
             <div class="progress-text" id="progressText">0%</div>
         </div>
     </div>
@@ -409,10 +417,13 @@
             </div>
 
             <div class="btn-group">
-                <select id="lang-select" class="tool-btn icon-btn" title="Language / 语言" style="appearance:none;-webkit-appearance:none;cursor:pointer;">
-                    <option value="zh">🌐 中文</option>
-                    <option value="en">🌐 EN</option>
-                </select>
+                <div class="lang-wrap">
+                    <button class="tool-btn icon-btn" id="btn-lang" title="Language / 语言">🌐 中文 ▾</button>
+                    <div class="lang-menu" id="lang-menu">
+                        <div class="lang-option" data-lang="zh">中文</div>
+                        <div class="lang-option" data-lang="en">English</div>
+                    </div>
+                </div>
                 <button class="tool-btn icon-btn" id="btn-theme" title="切换浅色/暗色主题">🌙</button>
                 <button class="tool-btn poster-btn" id="btn-poster" title="生成当前页面的精美海报">📸 海报</button>
                 <button class="tool-btn highlight" id="btn-random" title="随机挑选一个未吃鸡的英雄（跟随当前职业筛选）" aria-label="随机抽卡">🎲 抽卡</button>
@@ -474,8 +485,11 @@
 
 <!-- 全屏忙碌遮罩（海报生成等耗时操作） -->
 <div id="busy-overlay">
-    <div class="busy-spinner"></div>
+    <div class="busy-icon">🎨</div>
     <div id="busy-text"></div>
+    <div class="busy-bar-track"><div class="busy-bar-fill" id="busy-bar-fill"></div></div>
+    <div id="busy-stage"></div>
+    <div id="busy-pct">0%</div>
 </div>
 
 <!-- 通用确认模态框 -->
@@ -556,8 +570,27 @@
 
 <script>
     // ==========================================================================
-    // Arena God Tracker V10.5 — 实时数据 + 主题系统 + 战绩记录引擎
+    // Arena God Tracker V10.8 — 实时数据 + 主题系统 + 战绩记录引擎
     //
+    // V10.8 变更摘要（海报专项）：
+    //  [修复] 海报偶发失败：根因是 html2canvas 需重新下载全部头像导致超时。
+    //         现在先用浏览器原生方式预载图片（带真实进度），html2canvas 直接
+    //         复用缓存（头像加 crossorigin 标记），看门狗放宽到 60 秒
+    //  [界面] 等待画面重做：🎨 图标 + 三阶段说明（加载素材→绘制画布→导出）
+    //         + 金色进度条 + 百分比，素材阶段为真实进度
+    //  [修复] 海报中未吃鸡英雄叠加灰色蒙版（html2canvas 不支持 CSS 灰度滤镜，
+    //         屏幕上的灰色效果在海报里会失效变彩色）
+    //  [修复] 收集进度条上的 25/50/75 刻度灰线视觉上像瑕疵，已移除
+    // V10.7 变更摘要：
+    //  [修复] 英文模式下装备仍显示中文：CDragon 英文数据位于 global/default/
+    //         目录（不存在 global/en_us/ 路径），404 后兜底机制兜回了中文缓存
+    //  [修复] 历史缓存兜底按语言隔离（英文模式不再兜到中文数据，反之亦然）
+    //  [修复] 缓存清理语言感知：不误删另一种语言的缓存，切换语言免重新下载
+    // V10.6 变更摘要：
+    //  [修复] SW 页面导航改为"网络优先"：联网时永远获取最新版本，
+    //         根治"更新后要刷新两次/旧版残留导致看不到新功能"的问题
+    //  [界面] 语言切换换为自绘下拉菜单，配色随主题，含当前语言 ✓ 标记
+    //  [说明] 语言偏好按设备独立保存（同主题），手机与电脑各自选择
     // V10.5 变更摘要：
     //  [功能] 🌐 中英双语：右上角下拉切换（默认中文），界面文案与数据源语言同步切换
     //         （英文模式下英雄/海克斯/装备的名称与描述均来自官方英文数据）
@@ -589,7 +622,9 @@
     // 界面文案与数据源语言同步切换；默认中文，偏好持久化，切换后刷新页面重拉对应语言数据
     const LANG = (localStorage.getItem('arena_lang') === 'en') ? 'en' : 'zh';
     const DD_LANG = LANG === 'en' ? 'en_US' : 'zh_CN';   // Data Dragon 语言码
-    const CD_LANG = LANG === 'en' ? 'en_us' : 'zh_cn';   // CommunityDragon 语言码
+    const CD_LANG = LANG === 'en' ? 'en_us' : 'zh_cn';   // CommunityDragon arena 数据语言码
+    // 注意：CDragon 插件目录的英文数据位于 global/default/ 下，并不存在 global/en_us/ 路径
+    const CD_ITEM_LANG = LANG === 'en' ? 'default' : 'zh_cn';
     const SORT_LOCALE = LANG === 'en' ? 'en' : 'zh-Hans-CN';
     document.documentElement.lang = LANG === 'en' ? 'en' : 'zh-CN';
 
@@ -623,7 +658,8 @@
         chgAdded:'✚ 新增', chgChanged:'✎ 改动', chgRemoved:'✖ 移除', chgGameVer:'🎮 游戏版本', chgAugs:'🔮 海克斯', chgItems:'⚔️ 装备',
         chgOnlyVer:'本次仅版本号变化，内容无差异',
         posterTitle:'📸 海报已生成', posterTip:'长按图片 → 保存到相册 / 发送给好友',
-        posterWorking:'📸 正在绘制高清海报，请稍候（最长约40秒）…', toastPosterOk:'✅ 专属图鉴海报生成成功！', toastPosterFail:'❌ 海报生成失败，请稍后重试',
+        posterWorking:'📸 正在生成专属海报…', toastPosterOk:'✅ 专属图鉴海报生成成功！', toastPosterFail:'❌ 海报生成失败，请稍后重试',
+        posterStageAssets:'📷 加载素材：{a} / {b} 张图片', posterStageDraw:'🎨 正在绘制画布：{n} 位英雄逐一上色（此步最久）', posterStageExport:'💾 正在导出图片…',
         modalCancel:'取消 (Esc)', modalConfirm:'确定 (Enter)',
         unmarkTitle:'取消状态', unmarkMsg:'确定要将 【<span style="color:var(--accent)">{name}</span>】 移出吃鸡列表吗？',
         confirmWinTitle:'🏆 确认吃鸡', confirmWinMsg:'将 【<span style="color:var(--gold)">{name}</span>】 标记为已吃鸡？',
@@ -673,7 +709,8 @@
         chgAdded:'✚ Added', chgChanged:'✎ Changed', chgRemoved:'✖ Removed', chgGameVer:'🎮 Game patch', chgAugs:'🔮 Augments', chgItems:'⚔️ Items',
         chgOnlyVer:'Patch number changed only; no content differences',
         posterTitle:'📸 Poster ready', posterTip:'Long-press the image to save or share',
-        posterWorking:'📸 Rendering poster, please wait (up to ~40s)…', toastPosterOk:'✅ Poster generated!', toastPosterFail:'❌ Poster failed, please retry',
+        posterWorking:'📸 Generating your poster…', toastPosterOk:'✅ Poster generated!', toastPosterFail:'❌ Poster failed, please retry',
+        posterStageAssets:'📷 Loading assets: {a} / {b} images', posterStageDraw:'🎨 Painting canvas: coloring {n} champions (longest step)', posterStageExport:'💾 Exporting image…',
         modalCancel:'Cancel (Esc)', modalConfirm:'OK (Enter)',
         unmarkTitle:'Unmark win', unmarkMsg:'Remove <span style="color:var(--accent)">{name}</span> from the win list?',
         confirmWinTitle:'🏆 Confirm win', confirmWinMsg:'Mark <span style="color:var(--gold)">{name}</span> as won?',
@@ -1040,7 +1077,12 @@
             const toRemove = [];
             for (let i = 0; i < localStorage.length; i++) {
                 const k = localStorage.key(i);
-                if (k && k.startsWith(CACHE_PREFIX) && !validKeys.includes(k)) toRemove.push(k);
+                if (!k || !k.startsWith(CACHE_PREFIX) || validKeys.includes(k)) continue;
+                // 只清理：当前语言的旧版本缓存 + 无语言标记的历史遗留缓存
+                // 另一种语言的缓存保留，切回时免重新下载
+                const isCurrentLang = k.includes('_' + LANG);
+                const isLegacy = !k.includes('_zh') && !k.includes('_en');
+                if (isCurrentLang || isLegacy) toRemove.push(k);
             }
             toRemove.forEach(k => localStorage.removeItem(k));
         } catch(e) {}
@@ -1136,7 +1178,7 @@
             });
         } catch(e) {
             console.error("英雄数据加载失败", e);
-            appData.champions = readAnyCache(CACHE_PREFIX + 'champs_') || [];
+            appData.champions = readAnyCache(`${CACHE_PREFIX}champs_v9_${LANG}_`) || [];
             if (appData.champions.length) showToast(t('toastStaleChamps'));
             else showLoadError('champions', t('errChamps'));
         } finally { clearSkeletons('champions'); }
@@ -1144,8 +1186,13 @@
         // 2. 装备（latest，跟随当前版本；按 棱镜/传说/鞋子/消耗品/其他 分类）
         try {
             appData.items = await loadDataWithCache(itemCacheKey, async () => {
-                const res = await fetch(`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/${CD_LANG}/v1/items.json`);
-                if (!res.ok) throw new Error("网络错误");
+                // 主路径失败时退到 default（英文）目录，保证任何情况下至少有数据
+                let res = null;
+                for (const loc of [...new Set([CD_ITEM_LANG, 'default'])]) {
+                    res = await fetch(`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/${loc}/v1/items.json`).catch(() => null);
+                    if (res && res.ok) break;
+                }
+                if (!res || !res.ok) throw new Error("网络错误");
                 const rawItems = await res.json();
 
                 // —— 棱镜装备识别（双保险）——
@@ -1201,7 +1248,7 @@
             liveFlags.items = appData.items.length > 0;
         } catch(e) {
             console.error("装备数据加载失败", e);
-            appData.items = readAnyCache(CACHE_PREFIX + 'items_') || [];
+            appData.items = readAnyCache(`${CACHE_PREFIX}items_v11_${LANG}_`) || [];
             if (!appData.items.length) showLoadError('items', t('errItems'));
         } finally { clearSkeletons('items'); }
 
@@ -1279,9 +1326,18 @@
         setBtn('btn-export','btnExport'); setBtn('btn-import','btnImport'); setBtn('btn-reset','btnReset');
         const fw = document.getElementById('focus-mode-wrapper'); if (fw) fw.title = t('titleFocus');
         document.getElementById('globalSearch').placeholder = t('searchPh');
-        const ls = document.getElementById('lang-select'); if (ls) ls.value = LANG;
+        const lb = document.getElementById('btn-lang'); if (lb) lb.innerHTML = LANG === 'en' ? '🌐 EN ▾' : '🌐 中文 ▾';
     }
-    function showBusy(text) { document.getElementById('busy-text').textContent = text; document.getElementById('busy-overlay').classList.add('show'); }
+    function showBusy(text) {
+        document.getElementById('busy-text').textContent = text;
+        busyProgress(0, '');
+        document.getElementById('busy-overlay').classList.add('show');
+    }
+    function busyProgress(pct, stage) {
+        document.getElementById('busy-bar-fill').style.width = Math.min(100, pct) + '%';
+        document.getElementById('busy-pct').textContent = Math.round(Math.min(100, pct)) + '%';
+        if (stage !== undefined && stage !== null) document.getElementById('busy-stage').innerHTML = stage;
+    }
     function hideBusy() { document.getElementById('busy-overlay').classList.remove('show'); }
 
     // ---------- 事件委托（全站统一绑定，无内联 onclick）----------
@@ -1292,10 +1348,20 @@
             if (btn) switchTab(btn.dataset.tab);
         });
 
-        // 语言切换：保存偏好后刷新页面，按新语言重拉数据
-        document.getElementById('lang-select').addEventListener('change', e => {
-            localStorage.setItem('arena_lang', e.target.value === 'en' ? 'en' : 'zh');
-            location.reload();
+        // 语言切换下拉菜单：选择后保存偏好并刷新，按新语言重拉数据
+        const langMenu = document.getElementById('lang-menu');
+        document.getElementById('btn-lang').addEventListener('click', e => {
+            e.stopPropagation();
+            langMenu.classList.toggle('show');
+        });
+        document.addEventListener('click', () => langMenu.classList.remove('show'));
+        langMenu.querySelectorAll('.lang-option').forEach(opt => {
+            opt.classList.toggle('active', opt.dataset.lang === LANG);
+            opt.addEventListener('click', () => {
+                if (opt.dataset.lang === LANG) { langMenu.classList.remove('show'); return; }
+                localStorage.setItem('arena_lang', opt.dataset.lang);
+                location.reload();
+            });
         });
 
         // 工具按钮
@@ -1586,6 +1652,7 @@
         avatarBox.className = 'avatar-container';
         const img = document.createElement('img');
         img.className = isSVG ? 'avatar svg-avatar' : 'avatar';
+        img.crossOrigin = 'anonymous'; // 关键：让缓存副本对画布"干净"，海报生成免重新下载
         img.src = item.img;
         img.alt = item.name;
         img.loading = 'lazy';
@@ -2037,22 +2104,70 @@
     // ---------- 海报 ----------
     // 移动端浏览器不支持网页触发下载（点下载链接会直接在当前页打开巨型图片，导致"回不来"），
     // 故触屏设备改为弹窗展示 + 长按保存；桌面端保持直接下载
+    // 流程：①浏览器原生预载全部图片（真实进度 0→60%）→ ②html2canvas 吃热缓存合成（60→92%）→ ③导出（→100%）
+    async function preloadExportImages(onProgress) {
+        const imgs = [...document.querySelectorAll('#export-zone img')].filter(im => im.offsetParent !== null);
+        const total = imgs.length || 1;
+        let done = 0;
+        await Promise.all(imgs.map(img => new Promise(res => {
+            let settled = false;
+            const finish = () => { if (settled) return; settled = true; done++; onProgress(done, total); res(); };
+            img.loading = 'eager'; // 强制加载懒加载图片
+            if (img.complete && img.naturalWidth > 0) return finish();
+            img.addEventListener('load', finish, { once: true });
+            img.addEventListener('error', finish, { once: true });
+            setTimeout(finish, 5000); // 单图超时不拖死整体
+        })));
+        return total;
+    }
+
     async function generatePoster() {
         showBusy(t('posterWorking'));
         const exportZone = document.getElementById('export-zone'); const toolbar = document.getElementById('control-toolbar');
         toolbar.style.display = 'none';
+        let drawTicker = null;
         try {
+            // 阶段①：预载素材（真实进度）
+            await preloadExportImages((a, b) => busyProgress(a / b * 60, t('posterStageAssets', { a, b })));
+
+            // 阶段②：合成画布（html2canvas 无进度回调，用模拟进度推进）
+            const champCount = appData.champions.length || 0;
+            let pct = 60;
+            busyProgress(pct, t('posterStageDraw', { n: champCount }));
+            drawTicker = setInterval(() => { pct = Math.min(92, pct + 0.7); busyProgress(pct, null); }, 250);
+
             const bg = getComputedStyle(document.body).getPropertyValue('--bg-color').trim() || '#0b0e13';
-            // 看门狗：40 秒未完成判定失败并恢复界面，绝不让页面"卡死"
+            const isLight = document.body.dataset.theme === 'light';
+            const maskColor = isLight ? 'rgba(205,209,216,0.8)' : 'rgba(66,72,84,0.8)';
             const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('poster timeout')), ms))]);
             const canvas = await withTimeout(
-                html2canvas(exportZone, { useCORS: true, backgroundColor: bg, scale: IS_TOUCH ? 1 : 1.5, imageTimeout: 6000, logging: false }),
-                40000
+                html2canvas(exportZone, {
+                    useCORS: true, backgroundColor: bg, scale: IS_TOUCH ? 1 : 1.5,
+                    imageTimeout: 6000, logging: false,
+                    onclone: (doc) => {
+                        // html2canvas 不支持 CSS filter（屏幕上的灰度滤镜在海报里失效），
+                        // 改为给未吃鸡英雄叠加灰色蒙版，保持"没吃鸡=灰"的视觉语义
+                        doc.querySelectorAll('#container-champions .data-card:not(.completed) .avatar-container').forEach(box => {
+                            box.style.position = 'relative';
+                            const mask = doc.createElement('div');
+                            mask.style.cssText = `position:absolute;top:0;left:0;right:0;bottom:0;background:${maskColor};`;
+                            box.appendChild(mask);
+                        });
+                        // 攻略站小图标跨域不可控，海报里隐藏避免渲染成空白块
+                        doc.querySelectorAll('#export-zone .links-container').forEach(el => { el.style.display = 'none'; });
+                    }
+                }),
+                60000
             );
+            clearInterval(drawTicker); drawTicker = null;
+            busyProgress(95, t('posterStageExport'));
             toolbar.style.display = 'block';
+
+            // 阶段③：导出
             await new Promise(resolve => {
                 canvas.toBlob(blob => {
                     if (!blob) { showToast(t('toastPosterFail')); resolve(); return; }
+                    busyProgress(100, t('posterStageExport'));
                     const url = URL.createObjectURL(blob);
                     if (IS_TOUCH) {
                         const img = document.getElementById('poster-img');
@@ -2070,7 +2185,7 @@
                 }, 'image/png');
             });
         } catch(e) { console.error(e); showToast(t('toastPosterFail')); }
-        finally { toolbar.style.display = 'block'; hideBusy(); }
+        finally { if (drawTicker) clearInterval(drawTicker); toolbar.style.display = 'block'; hideBusy(); }
     }
 
     function closePosterModal() {
@@ -2206,7 +2321,7 @@
     // ---------- 导入 / 导出 / 重置 ----------
     function exportData(){
         const data = {
-            version: 10.5,
+            version: 10.8,
             exportTime: new Date().toISOString(),
             champions: getCompleted(),   // 兼容旧格式
             records: getRecords()        // 新格式：含吃鸡日期
@@ -2249,7 +2364,7 @@
     <h3 data-i18n="footerTitle">关于 Arena God Tracker</h3>
     <p style="max-width: 800px; margin: 0 auto 10px auto; line-height: 1.6;" data-i18n="footerP1"></p>
     <p data-i18n="footerP2"></p>
-    <p style="margin-top: 15px; font-weight: bold; color: var(--gold-light);">Build: Ultimate V10.5 | 海克斯数据每 24 小时自动刷新</p>
+    <p style="margin-top: 15px; font-weight: bold; color: var(--gold-light);">Build: Ultimate V10.8 | 海克斯数据每 24 小时自动刷新</p>
 </div>
 
 </body>
