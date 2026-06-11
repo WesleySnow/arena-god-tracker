@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="英雄联盟斗魂竞技场吃鸡进度追踪器：全英雄收集进度、海克斯图鉴、装备百科、塔罗抽卡与战绩时间线。数据实时同步官方版本。">
     <meta name="theme-color" content="#0b0e13">
-    <title>Arena God Tracker - Ultimate V10.2</title>
+    <title>Arena God Tracker - Ultimate V10.3</title>
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏆</text></svg>">
     <link rel="manifest" href="manifest.webmanifest">
@@ -331,7 +331,14 @@
             .toolbar-top { flex-direction: column; align-items: stretch; gap: 10px; }
             .search-wrapper { width: 100%; min-width: auto; }
             .btn-group { width: 100%; justify-content: space-between; }
-            .tool-btn { flex: 1; padding: 8px; font-size: 0.85rem; justify-content: center; }
+            .tool-btn { flex: 1; padding: 8px; font-size: 0.85rem; justify-content: center; white-space: nowrap; }
+            /* 英雄网格一排6个；海克斯/装备保持约4个一排保证图标可辨 */
+            #container-champions.view-grid { grid-template-columns: repeat(6, 1fr); gap: 6px; }
+            #container-augments.view-grid, #container-items.view-grid { grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: 8px; }
+            #container-champions .view-grid, #container-champions .data-card { border-radius: 6px; }
+            #container-champions .data-name { font-size: 0.6rem; padding: 4px 1px 5px 1px; }
+            /* 卡片太小放不下攻略图标，已移入吃鸡确认弹窗 */
+            #container-champions .links-container { display: none; }
             .tool-btn.icon-btn { flex: 0 0 auto; }
             .toolbar-bottom { flex-direction: column; align-items: stretch; gap: 10px; }
             .filter-bar { justify-content: center; }
@@ -420,7 +427,7 @@
                     专注模式
                 </label>
                 <div style="width: 1px; height: 20px; background: var(--border-dark); margin: 0 5px;" class="divider-line"></div>
-                <button class="tool-btn" id="btn-tier" style="padding: 6px 12px; font-size: 0.8rem;" title="打开 Lolalytics 竞技场全英雄胜率排行（实时数据）">📈 胜率榜</button>
+                <button class="tool-btn" id="btn-tier" style="padding: 6px 12px; font-size: 0.8rem;" title="打开 Lolalytics 竞技场全英雄胜率排行（实时数据）">📈 胜率</button>
                 <button class="tool-btn" id="btn-stats" style="padding: 6px 12px; font-size: 0.8rem;">📊 统计</button>
                 <button class="tool-btn" id="btn-migrate" style="padding: 6px 12px; font-size: 0.8rem;" title="用二维码把进度搬到另一台设备">📱 迁移</button>
                 <button class="tool-btn" id="btn-export" style="padding: 6px 12px; font-size: 0.8rem;">💾 导出</button>
@@ -514,8 +521,14 @@
 
 <script>
     // ==========================================================================
-    // Arena God Tracker V10.2 — 实时数据 + 主题系统 + 战绩记录引擎
+    // Arena God Tracker V10.3 — 实时数据 + 主题系统 + 战绩记录引擎
     //
+    // V10.3 变更摘要（移动端体验专项）：
+    //  [移动] 英雄网格一排6个（海克斯/装备保持约4个保证图标可辨）
+    //  [移动] 防误触：触屏标记吃鸡前先弹确认框，框内附 OP.GG/Lolalytics/Blitz 直达
+    //  [移动] 提示框交互重做：触屏禁用悬停弹出，海克斯/装备改为点按显示、
+    //         再点/点空白/滚动即关闭（修复"技能提示关不掉"）
+    //  [移动] 修复"📈 胜率"按钮因文字换行而比其他按钮高的问题
     // V10.2 变更摘要：
     //  [架构] 彻底移除 augments_db.js 离线保底文件依赖（部署包精简为5个文件）
     //         替代机制更可靠：拉取失败自动回退"上一次成功的数据"（含跨版本扫描），
@@ -718,6 +731,9 @@
     let tarotCanClose = false;
     let hoverCardEl = null;
     let liveFlags = { augs: false, items: false }; // 数据是否来自官方实时源（版本侦测仅在权威数据下运行）
+    // 触屏设备：点按会触发模拟的鼠标悬停事件，需要走专门的交互逻辑
+    const IS_TOUCH = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    let touchTooltipCardId = null; // 触屏模式下当前展示提示的卡片
 
     const ROLE_FILTERS = { "All": "全部英雄", "Fighter": "战士", "Mage": "法师", "Assassin": "刺客", "Marksman": "射手", "Tank": "坦克", "Support": "辅助" };
     const ROLE_ORDER = ["Fighter", "Mage", "Assassin", "Marksman", "Tank", "Support"];
@@ -1112,14 +1128,27 @@
         });
 
         // 卡片容器（委托：点击 + 悬浮提示）
+        // 触屏设备：点按会触发模拟 mouseover 导致提示框弹出且无法关闭，
+        // 故触屏下禁用悬停提示，改为「点按海克斯/装备 → 显示说明，再点或点空白处 → 关闭」
         ['champions', 'augments', 'items'].forEach(tab => {
             const container = document.getElementById(`container-${tab}`);
             container.addEventListener('click', e => {
                 if (e.target.closest('a')) return; // 外链不拦截
                 const card = e.target.closest('.data-card');
-                if (card && tab === 'champions') toggleStatus(card.dataset.id, card.dataset.name);
+                if (!card) return;
+                if (tab === 'champions') { toggleStatus(card.dataset.id, card.dataset.name); return; }
+                if (IS_TOUCH) {
+                    // 点按切换说明显示
+                    if (touchTooltipCardId === card.dataset.id && tooltip.style.display === 'block') {
+                        touchTooltipCardId = null; hideTooltip();
+                    } else {
+                        touchTooltipCardId = card.dataset.id;
+                        showContextTooltip(e, card.dataset.id, card.dataset.name);
+                    }
+                }
             });
             container.addEventListener('mouseover', e => {
+                if (IS_TOUCH) return; // 触屏不走悬停逻辑
                 const card = e.target.closest('.data-card');
                 if (card && card !== hoverCardEl) {
                     hoverCardEl = card;
@@ -1127,13 +1156,24 @@
                 }
             });
             container.addEventListener('mousemove', e => {
+                if (IS_TOUCH) return;
                 if (e.target.closest('.data-card')) moveTooltip(e);
             });
             container.addEventListener('mouseout', e => {
+                if (IS_TOUCH) return;
                 const card = e.target.closest('.data-card');
                 if (card && !card.contains(e.relatedTarget)) { hoverCardEl = null; hideTooltip(); }
             });
         });
+
+        // 触屏：点击卡片以外的任意位置关闭说明提示
+        if (IS_TOUCH) {
+            document.addEventListener('click', e => {
+                if (tooltip.style.display === 'block' && !e.target.closest('.data-card')) {
+                    touchTooltipCardId = null; hideTooltip();
+                }
+            });
+        }
 
         // 统计模态框关闭
         document.getElementById('stats-close').addEventListener('click', closeStatsModal);
@@ -1211,6 +1251,7 @@
 
         window.addEventListener('scroll', () => {
             document.getElementById('scroll-top-btn').classList.toggle('visible', window.scrollY > 300);
+            if (IS_TOUCH && tooltip.style.display === 'block') { touchTooltipCardId = null; hideTooltip(); }
         }, { passive: true });
     }
 
@@ -1407,6 +1448,16 @@
     }
 
     // ---------- 吃鸡标记 ----------
+    function championGuideLinksHtml(champId) {
+        const lower = encodeURIComponent(champId.toLowerCase());
+        const style = 'color:var(--accent);font-weight:600;text-decoration:none;font-size:0.9rem;';
+        return `<div style="display:flex;gap:20px;justify-content:center;margin-top:14px;">
+            <a href="https://op.gg/lol/modes/arena/${lower}/build" target="_blank" rel="noopener" style="${style}">OP.GG</a>
+            <a href="https://lolalytics.com/lol/${lower}/arena/build/" target="_blank" rel="noopener" style="${style}">Lolalytics</a>
+            <a href="https://blitz.gg/ja/lol/champions/${encodeURIComponent(champId)}/arena" target="_blank" rel="noopener" style="${style}">Blitz</a>
+        </div>`;
+    }
+
     async function toggleStatus(itemId, itemName) {
         if(currentTab !== 'champions') return;
         const completed = getCompleted();
@@ -1419,6 +1470,12 @@
             card.classList.remove('completed');
             showToast(`已取消【${escapeHtml(itemName)}】`);
         } else {
+            // 触屏设备：先确认再标记（防误触）；确认框内附攻略直达链接
+            if (IS_TOUCH) {
+                const confirmed = await showConfirmWithTimer('🏆 确认吃鸡',
+                    `将 【<span style="color:var(--gold)">${escapeHtml(itemName)}</span>】 标记为已吃鸡？${championGuideLinksHtml(itemId)}`, false);
+                if (!confirmed) return;
+            }
             addWin(itemId);
             card.classList.add('completed');
             if(typeof confetti !== 'undefined') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#d4af37', '#ffffff', '#e84057'] });
@@ -1873,7 +1930,7 @@
     // ---------- 导入 / 导出 / 重置 ----------
     function exportData(){
         const data = {
-            version: 10.2,
+            version: 10.3,
             exportTime: new Date().toISOString(),
             champions: getCompleted(),   // 兼容旧格式
             records: getRecords()        // 新格式：含吃鸡日期
@@ -1916,7 +1973,7 @@
     <h3>关于 Arena God Tracker</h3>
     <p style="max-width: 800px; margin: 0 auto 10px auto; line-height: 1.6;">本工具专为《英雄联盟》斗魂竞技场玩家打造。海克斯图鉴与装备百科<strong>实时同步官方最新版本数据</strong>，吃鸡记录自动带日期并可在统计面板查看时间线与各职业完成度。支持塔罗抽卡（跟随职业筛选）、浅色/暗色主题切换，进度永久保存在本地。</p>
     <p><i>本工具数据解析自 Riot Games 游戏公开包（经由 CommunityDragon 镜像），不隶属于 Riot Games 官方。第三方攻略链接归属 Op.gg / Blitz.gg 所有。</i></p>
-    <p style="margin-top: 15px; font-weight: bold; color: var(--gold-light);">Build: Ultimate V10.2 | 海克斯数据每 24 小时自动刷新</p>
+    <p style="margin-top: 15px; font-weight: bold; color: var(--gold-light);">Build: Ultimate V10.3 | 海克斯数据每 24 小时自动刷新</p>
 </div>
 
 </body>
