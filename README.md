@@ -4,7 +4,7 @@
 
 为追求"全英雄制霸"成就（Arena God）的玩家打造的图鉴与战绩工具。纯静态页面，无需后端，数据实时同步官方最新版本。
 
-**🔗 在线使用：** `https://你的用户名.github.io/arena-god-tracker/` *（部署后把这行换成你的实际网址）*
+**🔗 在线使用：https://wesleysnow.github.io/arena-god-tracker/
 
 ## ✨ 功能
 
