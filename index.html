@@ -1,0 +1,1923 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="英雄联盟斗魂竞技场吃鸡进度追踪器：全英雄收集进度、海克斯图鉴、装备百科、塔罗抽卡与战绩时间线。数据实时同步官方版本。">
+    <meta name="theme-color" content="#0b0e13">
+    <title>Arena God Tracker - Ultimate V10.2</title>
+
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏆</text></svg>">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+
+    <style>
+        /* ==========================================================================
+           1. 主题变量系统（暗色 / 浅色双主题）
+           ========================================================================== */
+        :root {
+            --accent: #e84057;
+            --accent-hover: #ff576f;
+            --prismatic: #c678dd;
+            --success: #28a745;
+            --danger: #dc3545;
+        }
+
+        body[data-theme="dark"] {
+            --bg-color: #0b0e13;
+            --bg-panel: #181d25;
+            --bg-hover: #212833;
+            --bg-input: #11141a;
+            --bg-sticky: rgba(11, 14, 19, 0.95);
+            --bg-tooltip: rgba(17, 20, 26, 0.96);
+            --text-main: #ffffff;
+            --text-muted: #8b96a5;
+            --gold: #d4af37;
+            --gold-light: #f3d473;
+            --silver: #a0aab5;
+            --special: #5bc0de;
+            --border-dark: #2a323d;
+            --pattern-fill: '%23ffffff';
+            --shadow-card: 0 6px 15px rgba(0,0,0,0.5);
+            /* 描述文本语义色（暗色背景用亮色系） */
+            --c-stats: #5bc0de; --c-magic: #5c9df5; --c-phys: #f58231;
+            --c-heal: #40d050; --c-shield: #f0c05a; --c-speed: #f5d76e; --c-status: #e74c3c;
+        }
+
+        body[data-theme="light"] {
+            --bg-color: #f2f4f8;
+            --bg-panel: #ffffff;
+            --bg-hover: #eef1f6;
+            --bg-input: #f7f9fc;
+            --bg-sticky: rgba(242, 244, 248, 0.95);
+            --bg-tooltip: rgba(255, 255, 255, 0.98);
+            --text-main: #1a2030;
+            --text-muted: #4b5563;
+            --gold: #b8860b;
+            --gold-light: #9a7209;
+            --silver: #6b7684;
+            --special: #1f87b0;
+            --border-dark: #d8dee8;
+            --pattern-fill: '%23000000';
+            --shadow-card: 0 6px 15px rgba(60,70,90,0.15);
+            /* 描述文本语义色（白色背景用加深色系，保证可读性） */
+            --c-stats: #1c7da6; --c-magic: #2457b8; --c-phys: #b54e0a;
+            --c-heal: #1b7d36; --c-shield: #8f6c06; --c-speed: #8a7410; --c-status: #c0392b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; min-height: 100vh;
+            scroll-behavior: smooth;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        body[data-theme="dark"] {
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cpath d='M30 60L15 51.34V34.02L30 25.36l15 8.66v17.32L30 60zm0-51.96L15 16.7v17.32l15 8.66 15-8.66V16.7L30 8.04zM15 8.04L0 16.7v17.32l15 8.66 15-8.66V16.7L15 8.04zm30 0L30 16.7v17.32l15 8.66 15-8.66V16.7L45 8.04z' fill='%23ffffff' fill-opacity='0.02'/%3E%3C/g%3E%3C/svg%3E");
+        }
+        body[data-theme="light"] {
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cpath d='M30 60L15 51.34V34.02L30 25.36l15 8.66v17.32L30 60zm0-51.96L15 16.7v17.32l15 8.66 15-8.66V16.7L30 8.04zM15 8.04L0 16.7v17.32l15 8.66 15-8.66V16.7L15 8.04zm30 0L30 16.7v17.32l15 8.66 15-8.66V16.7L45 8.04z' fill='%23000000' fill-opacity='0.025'/%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        #export-zone { padding: 20px 40px; background-color: var(--bg-color); transition: background-color 0.3s ease; }
+
+        /* ==========================================================================
+           2. 顶部面板、动画数字与里程碑进度条
+           ========================================================================== */
+        .header { text-align: center; margin-bottom: 20px; position: relative; }
+        h1 { color: var(--text-main); margin-bottom: 10px; font-weight: 800; letter-spacing: 1px; }
+        .stats-box { font-size: 1.2rem; background: var(--bg-panel); display: inline-block; padding: 12px 30px; border-radius: 8px; border: 1px solid var(--border-dark); margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+        .stats-box strong { color: var(--accent); display: inline-block; min-width: 30px; }
+        .progress-container { width: 100%; max-width: 500px; height: 22px; background-color: var(--bg-panel); border-radius: 11px; border: 1px solid var(--border-dark); margin: 0 auto 20px auto; overflow: hidden; position: relative; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #b8860b, #d4af37); width: 0%; transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .progress-text { position: absolute; width: 100%; text-align: center; font-size: 0.8rem; line-height: 22px; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.6); color: #fff; top: 0; left: 0; pointer-events: none; }
+        body[data-theme="light"] .progress-text { color: var(--text-main); text-shadow: none; }
+        .progress-tick { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(128,128,128,0.35); pointer-events: none; }
+        .progress-tick::after { content: attr(data-label); position: absolute; top: 100%; left: 50%; transform: translateX(-50%); font-size: 0.6rem; color: var(--text-muted); margin-top: 2px; }
+
+        /* ==========================================================================
+           3. 导航与控制台
+           ========================================================================== */
+        .sticky-header { position: sticky; top: 0; z-index: 100; background-color: var(--bg-sticky); backdrop-filter: blur(10px); padding: 10px 40px; border-bottom: 1px solid var(--border-dark); margin-bottom: 20px; transition: background-color 0.3s ease; }
+        .tabs-header { display: flex; justify-content: center; gap: 30px; border-bottom: 1px solid var(--border-dark); margin-bottom: 15px; }
+        .tab-btn { background: transparent; border: none; color: var(--text-muted); font-size: 1.1rem; font-weight: bold; cursor: pointer; padding: 15px 20px; transition: all 0.3s; border-bottom: 3px solid transparent; letter-spacing: 1px; }
+        .tab-btn:hover { color: var(--text-main); }
+        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+        .toolbar-top { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 15px; flex-wrap: wrap;}
+        .toolbar-bottom { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;}
+        .search-wrapper { flex: 1; min-width: 250px; position: relative; }
+        .global-search { width: 100%; box-sizing: border-box; background: var(--bg-input); border: 1px solid var(--border-dark); color: var(--text-main); padding: 12px 16px 12px 40px; border-radius: 8px; font-size: 0.95rem; transition: all .25s ease; outline: none; }
+        .global-search:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 15px rgba(232, 64, 87, .2); }
+        .search-icon { position: absolute; left: 14px; top: 12px; color: var(--text-muted); pointer-events: none; }
+        .shortcut-hint { position: absolute; right: 14px; top: 12px; background: var(--bg-panel); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; color: var(--text-muted); border: 1px solid var(--border-dark); pointer-events: none; }
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap;}
+        .tool-btn { background: var(--bg-panel); border: 1px solid var(--border-dark); color: var(--text-main); padding: 10px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
+        .tool-btn:hover { border-color: var(--gold); color: var(--gold); background: var(--bg-hover); }
+        .tool-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+        .tool-btn.highlight { background: linear-gradient(45deg, #e84057, #ff576f); border-color: transparent; color: white; box-shadow: 0 4px 10px rgba(232, 64, 87, 0.3); }
+        .tool-btn.highlight:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(232, 64, 87, 0.5); color: white; }
+        .tool-btn.poster-btn { background: linear-gradient(45deg, #d4af37, #f3d473); border-color: transparent; color: #000; }
+        .tool-btn.poster-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(212, 175, 55, 0.4); color: #000;}
+        .tool-btn.icon-btn { padding: 10px 12px; font-size: 1rem; }
+        .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; transition: opacity 0.3s; }
+        .filter-btn { background-color: transparent; border: 1px solid var(--border-dark); color: var(--text-muted); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: all 0.2s; }
+        .filter-btn:hover { border-color: var(--text-muted); color: var(--text-main); }
+        .filter-btn.active { background-color: var(--bg-panel); color: var(--accent); border-color: var(--accent); }
+        .switch-wrapper { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text-muted); font-weight: 600; cursor: pointer; user-select: none; }
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--bg-panel); transition: .4s; border-radius: 24px; border: 1px solid var(--border-dark); }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: var(--text-muted); transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent); border-color: var(--accent); }
+        input:checked + .slider:before { transform: translateX(20px); background-color: white; }
+
+        /* ==========================================================================
+           4. 数据卡片与骨架屏
+           ========================================================================== */
+        .data-container { display: grid; gap: 16px; position: relative; transition: all 0.3s ease; }
+        .data-container.view-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+        .data-container.view-list { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+        .data-card { background-color: var(--bg-panel); border: 2px solid transparent; border-radius: 8px; transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s; display: none; overflow: hidden; cursor: pointer; }
+        .data-card.show { display: flex; }
+        .data-card:hover { transform: translateY(-4px); border-color: var(--border-dark); z-index: 2; box-shadow: var(--shadow-card); }
+        .view-grid .data-card { flex-direction: column; text-align: center; }
+        .view-grid .data-name { padding: 8px 4px 10px 4px; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .view-list .data-card { flex-direction: row; align-items: center; padding: 10px; gap: 15px; }
+        .view-list .avatar-container { width: 50px; height: 50px; flex-shrink: 0; border-radius: 8px; overflow: hidden; }
+        .view-list .data-name { font-size: 1.1rem; font-weight: bold; color: var(--text-muted); flex-grow: 1; text-align: left; }
+
+        .data-card img.avatar { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%) opacity(0.5); transition: all 0.3s ease; display: block; }
+        .data-card img.svg-avatar { filter: none !important; opacity: 0.7; transition: all 0.3s ease; }
+        .data-card:hover img.svg-avatar { opacity: 1; transform: scale(1.05); }
+        .data-card.tier-prismatic img.avatar, .data-card.tier-gold img.avatar,
+        .data-card.tier-silver img.avatar, .data-card.tier-special img.avatar { filter: grayscale(0%) opacity(1); }
+
+        .data-card.completed { border-color: var(--gold); box-shadow: 0 0 12px rgba(212,175,55,0.15); }
+        .data-card.completed img.avatar { filter: grayscale(0%) opacity(1); }
+        .data-card.completed .data-name { color: var(--text-main); }
+
+        .data-card.tier-prismatic { border-color: var(--prismatic); box-shadow: 0 0 15px rgba(198,120,221,0.2); }
+        .data-card.tier-prismatic .data-name { color: var(--prismatic); }
+        .data-card.tier-gold { border-color: var(--gold); box-shadow: 0 0 10px rgba(212,175,55,0.1); }
+        .data-card.tier-gold .data-name { color: var(--gold); }
+        .data-card.tier-silver { border-color: var(--silver); }
+        .data-card.tier-silver .data-name { color: var(--silver); }
+        .data-card.tier-special { border-color: var(--special); box-shadow: 0 0 10px rgba(91,192,222,0.15); }
+        .data-card.tier-special .data-name { color: var(--special); }
+        .data-card.item-card { border-color: var(--border-dark); }
+        .data-card.item-card img.avatar { filter: grayscale(0%) opacity(1); }
+        .data-card.item-card .data-name { color: var(--text-main); }
+
+        /* —— 浅色主题专属等级色板：白底下描边加深 + 卡片底色微染，一眼分辨等级 —— */
+        body[data-theme="light"] .data-card.tier-prismatic { border-color: #a855f7; background: #faf5ff; box-shadow: 0 2px 8px rgba(168,85,247,0.18); }
+        body[data-theme="light"] .data-card.tier-prismatic .data-name { color: #7e22ce; }
+        body[data-theme="light"] .data-card.tier-gold { border-color: #ca8a04; background: #fefce8; box-shadow: 0 2px 8px rgba(202,138,4,0.16); }
+        body[data-theme="light"] .data-card.tier-gold .data-name { color: #a16207; }
+        body[data-theme="light"] .data-card.tier-silver { border-color: #94a3b8; background: #f1f5f9; }
+        body[data-theme="light"] .data-card.tier-silver .data-name { color: #475569; }
+        body[data-theme="light"] .data-card.tier-special { border-color: #0284c7; background: #f0f9ff; box-shadow: 0 2px 8px rgba(2,132,199,0.15); }
+        body[data-theme="light"] .data-card.tier-special .data-name { color: #0369a1; }
+        body[data-theme="light"] .data-card.completed { border-color: #ca8a04; background: #fefce8; box-shadow: 0 2px 8px rgba(202,138,4,0.2); }
+        body[data-theme="light"] .data-card.completed .data-name { color: #854d0e; font-weight: 700; }
+        @keyframes pulse-glow { 0% { box-shadow: 0 0 0 0 rgba(232,64,87, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(232,64,87, 0); } 100% { box-shadow: 0 0 0 0 rgba(232,64,87, 0); } }
+        .data-card.random-highlight { border-color: var(--accent) !important; animation: pulse-glow 1.5s infinite; transform: scale(1.05); z-index: 10; }
+        .links-container { display: flex; justify-content: center; gap: 12px; padding: 0 0 10px 0; }
+        .view-list .links-container { padding: 0; margin-right: 5px; }
+        .site-icon { width: 20px; height: 20px; border-radius: 4px; transition: transform 0.2s, filter 0.2s; filter: grayscale(100%) opacity(0.7); }
+        .site-icon:hover { transform: scale(1.2); filter: grayscale(0%) opacity(1); }
+
+        /* 骨架屏 */
+        @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+        .skeleton-card { height: 150px; border-radius: 8px; border: 2px solid transparent;
+            background: linear-gradient(90deg, var(--bg-panel) 25%, var(--bg-hover) 40%, var(--bg-panel) 60%);
+            background-size: 300% 100%; animation: shimmer 1.3s infinite linear; }
+        .view-list .skeleton-card { height: 70px; }
+
+        /* ==========================================================================
+           5. 组件：回到顶部、悬浮窗、模态框、Toast
+           ========================================================================== */
+        #scroll-top-btn { position: fixed; bottom: 30px; right: 30px; width: 45px; height: 45px; background: var(--bg-panel); border: 1px solid var(--border-dark); border-radius: 50%; color: var(--text-muted); font-size: 1.2rem; display: flex; justify-content: center; align-items: center; cursor: pointer; opacity: 0; pointer-events: none; transition: 0.3s; z-index: 99; box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
+        #scroll-top-btn.visible { opacity: 1; pointer-events: auto; }
+        #scroll-top-btn:hover { background: var(--accent); color: white; border-color: var(--accent); transform: translateY(-3px); }
+        #tooltip { position: absolute; background: var(--bg-tooltip); backdrop-filter: blur(5px); border: 1px solid var(--border-dark); padding: 16px; border-radius: 8px; width: 380px; pointer-events: none; z-index: 1000; display: none; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35); }
+        .tooltip-title { color: var(--gold-light); font-size: 1.15rem; margin-bottom: 12px; border-bottom: 1px solid var(--border-dark); padding-bottom: 8px; font-weight: bold; }
+        .tooltip-desc { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
+        mainText { color: var(--text-main); } attention { color: var(--gold-light); font-weight: bold; } stats { color: var(--c-stats); } magicDamage { color: var(--c-magic); } physicalDamage { color: var(--c-phys); } trueDamage { color: var(--text-main); font-weight: bold; } healing { color: var(--c-heal); } shield { color: var(--c-shield); } speed { color: var(--c-speed); } status { color: var(--c-status); } rules { font-style: italic; color: var(--text-muted); }
+        spellName { color: var(--gold-light); font-weight: bold; } keyword, keywordStealth { color: var(--c-stats); font-weight: bold; } scaleAP { color: var(--c-magic); } scaleAD { color: var(--c-phys); } scaleHealth, scaleHP { color: var(--c-heal); } truedamage { color: var(--text-main); } OnHit { color: var(--c-speed); } Damage { color: var(--c-phys); }
+        .tooltip-stat { color: var(--gold); font-size: 0.9rem; margin-top: 10px; font-weight: bold; background: rgba(212,175,55,0.12); padding: 6px 10px; border-radius: 4px; display: inline-block;}
+        .skill-row { display: flex; gap: 12px; margin-bottom: 12px; align-items: flex-start; text-align: left; }
+        .skill-icon { width: 36px; height: 36px; border-radius: 6px; flex-shrink: 0; border: 1px solid var(--border-dark); }
+        .skill-content { flex-grow: 1; } .skill-content b { color: var(--gold-light); font-size: 0.95rem; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(3px); display: flex; justify-content: center; align-items: center; z-index: 10000; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+        .modal-overlay.show { opacity: 1; pointer-events: auto; }
+        .modal-box { background: var(--bg-panel); border: 1px solid var(--border-dark); border-radius: 10px; width: 340px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transform: scale(0.95); transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); overflow: hidden; }
+        .modal-overlay.show .modal-box { transform: scale(1); }
+        .modal-header { padding: 15px 20px; font-weight: 800; font-size: 1.1rem; background: rgba(128,128,128,0.08); border-bottom: 1px solid var(--border-dark); color: var(--gold); display: flex; justify-content: space-between; align-items: center; }
+        .modal-close-x { cursor: pointer; color: var(--text-muted); font-size: 1.1rem; font-weight: normal; padding: 0 4px; transition: 0.2s; }
+        .modal-close-x:hover { color: var(--accent); }
+        .modal-body { padding: 20px; font-size: 0.95rem; color: var(--text-main); line-height: 1.5; text-align: center;}
+
+        #modal-timer-container { position: relative; width: 60px; height: 60px; margin: 15px auto 5px auto; display: none; }
+        .timer-bg { fill: none; stroke: var(--border-dark); stroke-width: 4; }
+        .timer-progress { fill: none; stroke: var(--danger); stroke-width: 4; stroke-dasharray: 163.36; stroke-dashoffset: 0; transform: rotate(-90deg); transform-origin: 50% 50%; }
+        #modal-timer-text { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; color: var(--danger); }
+
+        .modal-footer { display: flex; padding: 15px 20px; gap: 12px; justify-content: center; background: rgba(128,128,128,0.05); border-top: 1px solid var(--border-dark); }
+        .modal-btn { padding: 8px 24px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: 0.2s; }
+        .cancel-btn { background: transparent; color: var(--text-muted); border: 1px solid var(--border-dark); }
+        .cancel-btn:hover { background: rgba(128,128,128,0.08); color: var(--text-main); border-color: var(--text-muted); }
+        .confirm-btn { background: var(--accent); color: white; border: 1px solid var(--accent); }
+        .confirm-btn:hover:not(:disabled) { background: var(--accent-hover); box-shadow: 0 0 10px rgba(232, 64, 87, 0.4); }
+        .confirm-btn:disabled { background: var(--bg-hover); color: var(--text-muted); cursor: not-allowed; border-color: var(--border-dark); }
+
+        #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10002; display: flex; flex-direction: column; gap: 10px; pointer-events: none;}
+        .toast { background-color: var(--bg-panel); color: var(--text-main); padding: 12px 24px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); border: 1px solid var(--border-dark); font-size: 0.95rem; opacity: 0; transform: translateY(20px); transition: all 0.3s ease; text-align: center;}
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .empty-state { display: none; grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted); font-size: 1.1rem; background: var(--bg-panel); border-radius: 8px; border: 1px dashed var(--border-dark); }
+        .empty-state.show { display: block; }
+
+        /* 版本变动横幅 */
+        #changes-banner { display: none; max-width: 900px; margin: 0 auto 18px auto; padding: 12px 18px; background: var(--bg-panel); border: 1px solid var(--gold); border-radius: 8px; font-size: 0.92rem; color: var(--text-main); box-shadow: 0 4px 14px rgba(212,175,55,0.12); align-items: center; gap: 12px; flex-wrap: wrap; }
+        #changes-banner.show { display: flex; }
+        #changes-banner .cb-text { flex: 1; min-width: 200px; }
+        #changes-banner .cb-text b { color: var(--gold); }
+        #changes-banner .cb-link { color: var(--accent); cursor: pointer; font-weight: 600; white-space: nowrap; }
+        #changes-banner .cb-link:hover { text-decoration: underline; }
+        #changes-banner .cb-close { cursor: pointer; color: var(--text-muted); padding: 0 4px; }
+        #changes-banner .cb-close:hover { color: var(--accent); }
+        .chg-group-title { font-size: 0.9rem; font-weight: 800; margin: 14px 0 6px 0; }
+        .chg-group-title.added { color: var(--success); }
+        .chg-group-title.changed { color: var(--gold); }
+        .chg-group-title.removed { color: var(--danger); }
+        .chg-names { font-size: 0.88rem; color: var(--text-muted); line-height: 1.7; }
+
+        /* 进度迁移模态框 */
+        .qr-wrap { background: #ffffff; padding: 14px; border-radius: 10px; width: fit-content; margin: 0 auto; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
+        .qr-wrap svg { display: block; width: min(300px, 68vw); height: auto; }
+        #qr-tip { text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 10px; line-height: 1.5; }
+        .migrate-textarea { width: 100%; box-sizing: border-box; background: var(--bg-input); border: 1px solid var(--border-dark); color: var(--text-main); border-radius: 8px; padding: 10px; font-size: 0.78rem; font-family: ui-monospace, Menlo, Consolas, monospace; resize: vertical; min-height: 60px; margin-top: 10px; outline: none; }
+        .migrate-textarea:focus { border-color: var(--accent); }
+        .migrate-btn-row { display: flex; justify-content: center; margin-top: 8px; }
+
+        /* ==========================================================================
+           6. 战绩统计模态框（职业进度 + 吃鸡时间线）
+           ========================================================================== */
+        .stats-modal-box { width: min(480px, 92vw); }
+        .stats-modal-body { text-align: left; max-height: 70vh; overflow-y: auto; padding: 20px; }
+        .stats-section-title { font-size: 0.95rem; font-weight: 800; color: var(--gold); margin: 0 0 12px 0; letter-spacing: 1px; }
+        .stats-section-title.mt { margin-top: 22px; }
+        .role-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .role-name { width: 52px; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); flex-shrink: 0; }
+        .role-bar { flex: 1; height: 14px; background: var(--bg-hover); border-radius: 7px; overflow: hidden; border: 1px solid var(--border-dark); }
+        .role-bar-fill { height: 100%; border-radius: 7px; background: linear-gradient(90deg, #b8860b, #d4af37); transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .role-count { width: 64px; text-align: right; font-size: 0.8rem; color: var(--text-muted); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+        .role-count b { color: var(--text-main); }
+        .timeline-list { display: flex; flex-direction: column; gap: 6px; }
+        .tl-item { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 6px; background: var(--bg-hover); border: 1px solid var(--border-dark); }
+        .tl-item img { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+        .tl-name { font-size: 0.9rem; font-weight: 600; color: var(--text-main); flex: 1; }
+        .tl-date { font-size: 0.78rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        .tl-empty { color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 16px 0; }
+
+        /* ==========================================================================
+           7. 塔罗牌抽卡
+           ========================================================================== */
+        #tarot-modal { z-index: 10005; flex-direction: column; cursor: pointer; }
+        #tarot-cards-row { display: flex; gap: 26px; margin-bottom: 20px; pointer-events: none; justify-content: center; }
+        .tarot-unit { display: flex; flex-direction: column; align-items: center; }
+        .tarot-card-container { perspective: 1000px; width: 250px; height: 365px; }
+        .tarot-card-inner {
+            position: relative; width: 100%; height: 100%; text-align: center;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d; box-shadow: 0 15px 40px rgba(0,0,0,0.7); border-radius: 12px;
+        }
+        .tarot-card-inner.flipped { transform: rotateY(180deg); }
+        .tarot-face {
+            position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden;
+            border-radius: 12px; overflow: hidden; border: 2px solid #d4af37;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .tarot-front {
+            background: linear-gradient(135deg, #181d25, #0b0e13); color: #d4af37; font-size: 76px; font-weight: bold;
+            background-image: repeating-linear-gradient(45deg, rgba(212,175,55,0.05) 0px, rgba(212,175,55,0.05) 10px, transparent 10px, transparent 20px);
+        }
+        .tarot-front-inner { border: 2px dashed #d4af37; width: 88%; height: 92%; border-radius: 8px; display: flex; align-items: center; justify-content: center; text-shadow: 0 0 15px rgba(212,175,55,0.5); }
+        .tarot-back { background: #181d25; transform: rotateY(180deg); }
+        .tarot-back img { width: 100%; height: calc(100% - 56px); object-fit: cover; object-position: top center; }
+        .tarot-back .name { height: 56px; line-height: 56px; font-size: 1.3rem; font-weight: bold; color: #d4af37; background: rgba(0,0,0,0.9); width: 100%; letter-spacing: 2px; overflow: hidden; }
+
+        .tarot-hint { color: #cfd5dd; font-size: 1.05rem; opacity: 0; transition: opacity 0.5s; letter-spacing: 2px; text-shadow: 0 2px 4px #000; pointer-events: none; text-align: center; padding: 0 16px; }
+        .tarot-hint.show { opacity: 1; animation: pulse-opacity 1.5s infinite; }
+
+        @keyframes drop-in { 0% { transform: translateY(-100vh) rotate(-15deg); } 60% { transform: translateY(20px) rotate(5deg); } 100% { transform: translateY(0) rotate(0); } }
+        .tarot-drop { animation: drop-in 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+        @keyframes pulse-opacity { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+        /* ==========================================================================
+           8. 移动端自适应适配
+           ========================================================================== */
+        @media (max-width: 768px) {
+            #export-zone { padding: 15px 10px; }
+            .sticky-header { padding: 10px 15px; }
+            .tabs-header { gap: 8px; flex-wrap: wrap; margin-bottom: 10px;}
+            .tab-btn { padding: 10px 5px; font-size: 1rem; flex: 1; min-width: 30%; white-space: nowrap; }
+            .toolbar-top { flex-direction: column; align-items: stretch; gap: 10px; }
+            .search-wrapper { width: 100%; min-width: auto; }
+            .btn-group { width: 100%; justify-content: space-between; }
+            .tool-btn { flex: 1; padding: 8px; font-size: 0.85rem; justify-content: center; }
+            .tool-btn.icon-btn { flex: 0 0 auto; }
+            .toolbar-bottom { flex-direction: column; align-items: stretch; gap: 10px; }
+            .filter-bar { justify-content: center; }
+            .filter-btn { padding: 6px 12px; font-size: 0.85rem; }
+            #data-management-group { justify-content: center; width: 100%; flex-wrap: wrap; gap: 10px;}
+            .view-list .data-card { flex-direction: column; text-align: center; gap: 8px; }
+            .data-container.view-list { grid-template-columns: repeat(auto-fill, minmax(100%, 1fr)); }
+            #tooltip { width: 90vw; max-width: 350px; font-size: 0.9rem; padding: 12px; box-sizing: border-box;}
+            .skill-row { gap: 8px; }
+            h1 { font-size: 1.6rem; } .stats-box { font-size: 1rem; padding: 10px 20px; }
+            .progress-container { height: 18px; } .progress-text { line-height: 18px; font-size: 0.75rem; }
+            .modal-box { max-width: 90vw; }
+            .tarot-card-container { width: 210px; height: 305px; }
+            #tarot-cards-row { gap: 12px; }
+        }
+    </style>
+</head>
+<body data-theme="dark">
+
+<div id="export-zone">
+    <div class="header">
+        <h1>🏆 Arena God Tracker</h1>
+        <div class="stats-box" id="stats-box-display">
+            收集进度: <strong id="statsDisplayNum">0</strong> / <span id="statsTotalNum">0</span>
+        </div>
+        <div class="progress-container" id="progress-container-display">
+            <div class="progress-fill" id="progressFill"></div>
+            <div class="progress-tick" style="left:25%" data-label="25"></div>
+            <div class="progress-tick" style="left:50%" data-label="50"></div>
+            <div class="progress-tick" style="left:75%" data-label="75"></div>
+            <div class="progress-text" id="progressText">0%</div>
+        </div>
+    </div>
+
+    <!-- 版本变动横幅（侦测到官方数据更新时显示） -->
+    <div id="changes-banner">
+        <div class="cb-text" id="changes-banner-text"></div>
+        <span class="cb-link" id="changes-banner-detail">查看详情 →</span>
+        <span class="cb-close" id="changes-banner-close" title="关闭">✕</span>
+    </div>
+
+    <div class="sticky-header" id="control-toolbar">
+        <div class="tabs-header">
+            <button class="tab-btn active" id="btn-tab-champions" data-tab="champions">🦸‍♂️ 英雄天命</button>
+            <button class="tab-btn" id="btn-tab-augments" data-tab="augments">🔮 海克斯图鉴</button>
+            <button class="tab-btn" id="btn-tab-items" data-tab="items">⚔️ 装备百科</button>
+        </div>
+
+        <div class="toolbar-top">
+            <div class="search-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="globalSearch" class="global-search" placeholder="搜英雄 / 装备属性(如:护甲,吸血) / 拼音...">
+                <span class="shortcut-hint">/</span>
+            </div>
+
+            <div class="btn-group">
+                <button class="tool-btn icon-btn" id="btn-theme" title="切换浅色/暗色主题">🌙</button>
+                <button class="tool-btn poster-btn" id="btn-poster" title="生成当前页面的精美海报">📸 海报</button>
+                <button class="tool-btn highlight" id="btn-random" title="随机挑选一个未吃鸡的英雄（跟随当前职业筛选）" aria-label="随机抽卡">🎲 抽卡</button>
+                <button class="tool-btn" id="btn-sort" title="切换排序方式">🔄 默认</button>
+                <button class="tool-btn" id="btn-view" title="切换视图">📝 列表</button>
+            </div>
+        </div>
+
+        <div class="toolbar-bottom">
+            <div class="filter-bar" id="filter-bar-champions"></div>
+            <div class="filter-bar" id="filter-bar-augments" style="display: none;">
+                <button class="filter-btn active" data-filter="All">全部级别</button>
+                <button class="filter-btn" data-filter="Prismatic">棱彩 (Prismatic)</button>
+                <button class="filter-btn" data-filter="Gold">黄金 (Gold)</button>
+                <button class="filter-btn" data-filter="Silver">白银 (Silver)</button>
+                <button class="filter-btn" data-filter="Special">特殊 (Special)</button>
+            </div>
+            <div class="filter-bar" id="filter-bar-items" style="display: none;">
+                <button class="filter-btn active" data-filter="All">全部装备</button>
+                <button class="filter-btn" data-filter="Prismatic">棱镜装备</button>
+                <button class="filter-btn" data-filter="Legendary">神话/传说</button>
+                <button class="filter-btn" data-filter="Boots">鞋子</button>
+                <button class="filter-btn" data-filter="Consumable">消耗品</button>
+                <button class="filter-btn" data-filter="Other">其他</button>
+            </div>
+
+            <div class="btn-group" style="align-items: center;" id="data-management-group">
+                <label class="switch-wrapper" id="focus-mode-wrapper" title="开启后只显示未收集的项目">
+                    <div class="switch"><input type="checkbox" id="focusModeToggle"><span class="slider"></span></div>
+                    专注模式
+                </label>
+                <div style="width: 1px; height: 20px; background: var(--border-dark); margin: 0 5px;" class="divider-line"></div>
+                <button class="tool-btn" id="btn-tier" style="padding: 6px 12px; font-size: 0.8rem;" title="打开 Lolalytics 竞技场全英雄胜率排行（实时数据）">📈 胜率榜</button>
+                <button class="tool-btn" id="btn-stats" style="padding: 6px 12px; font-size: 0.8rem;">📊 统计</button>
+                <button class="tool-btn" id="btn-migrate" style="padding: 6px 12px; font-size: 0.8rem;" title="用二维码把进度搬到另一台设备">📱 迁移</button>
+                <button class="tool-btn" id="btn-export" style="padding: 6px 12px; font-size: 0.8rem;">💾 导出</button>
+                <button class="tool-btn" id="btn-import" style="padding: 6px 12px; font-size: 0.8rem;">📂 导入</button>
+                <input type="file" id="importFile" accept=".json" style="display:none">
+                <button class="tool-btn danger" id="btn-reset" style="padding: 6px 12px; font-size: 0.8rem;">🗑️ 清空</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-champions" class="tab-pane active">
+        <div class="data-container view-grid" id="container-champions"><div class="empty-state" id="emptyState-champions"></div></div>
+    </div>
+    <div id="tab-augments" class="tab-pane">
+        <div class="data-container view-grid" id="container-augments"><div class="empty-state" id="emptyState-augments"></div></div>
+    </div>
+    <div id="tab-items" class="tab-pane">
+        <div class="data-container view-grid" id="container-items"><div class="empty-state" id="emptyState-items"></div></div>
+    </div>
+
+</div>
+
+<div id="tooltip"></div>
+<div id="scroll-top-btn" title="回到顶部">↑</div>
+<div id="toast-container"></div>
+
+<!-- 通用确认模态框 -->
+<div id="custom-modal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-header"><span id="modal-title">提示</span></div>
+        <div class="modal-body">
+            <span id="modal-message">确定吗？</span>
+            <div id="modal-timer-container">
+                <svg width="60" height="60" viewBox="0 0 60 60">
+                    <circle class="timer-bg" cx="30" cy="30" r="26"></circle>
+                    <circle class="timer-progress" id="modal-timer-progress" cx="30" cy="30" r="26"></circle>
+                </svg>
+                <div id="modal-timer-text">3</div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn cancel-btn" id="modal-cancel">取消 (Esc)</button>
+            <button class="modal-btn confirm-btn" id="modal-confirm">确定 (Enter)</button>
+        </div>
+    </div>
+</div>
+
+<!-- 战绩统计模态框：职业进度 + 吃鸡时间线 -->
+<div id="stats-modal" class="modal-overlay">
+    <div class="modal-box stats-modal-box">
+        <div class="modal-header">📊 战绩统计 <span class="modal-close-x" id="stats-close">✕</span></div>
+        <div class="stats-modal-body">
+            <div class="stats-section-title">⚔️ 职业进度</div>
+            <div id="role-stats"></div>
+            <div class="stats-section-title mt">🕑 吃鸡时间线</div>
+            <div class="timeline-list" id="timeline-list"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 进度迁移模态框（二维码 / 迁移码） -->
+<div id="migrate-modal" class="modal-overlay">
+    <div class="modal-box stats-modal-box">
+        <div class="modal-header">📱 进度迁移 <span class="modal-close-x" id="migrate-close">✕</span></div>
+        <div class="stats-modal-body">
+            <div class="stats-section-title">① 在这台设备生成</div>
+            <div id="qr-box"></div>
+            <div id="qr-tip"></div>
+            <textarea id="migrate-code" class="migrate-textarea" readonly placeholder="迁移码会显示在这里"></textarea>
+            <div class="migrate-btn-row"><button class="tool-btn" id="migrate-copy">📋 复制迁移码</button></div>
+            <div class="stats-section-title mt">② 在另一台设备导入</div>
+            <textarea id="migrate-input" class="migrate-textarea" placeholder="把迁移码（或扫码得到的链接）粘贴到这里"></textarea>
+            <div class="migrate-btn-row"><button class="tool-btn" id="migrate-import">📲 导入并合并</button></div>
+        </div>
+    </div>
+</div>
+
+<!-- 版本变动详情模态框 -->
+<div id="changes-modal" class="modal-overlay">
+    <div class="modal-box stats-modal-box">
+        <div class="modal-header">🆕 版本数据变动 <span class="modal-close-x" id="changes-close">✕</span></div>
+        <div class="stats-modal-body" id="changes-modal-body"></div>
+    </div>
+</div>
+
+<!-- 塔罗抽卡模态框 -->
+<div id="tarot-modal" class="modal-overlay">
+    <div id="tarot-cards-row"></div>
+    <div class="tarot-hint" id="tarot-hint">点击任意空白处前往英雄</div>
+</div>
+
+<script>
+    // ==========================================================================
+    // Arena God Tracker V10.2 — 实时数据 + 主题系统 + 战绩记录引擎
+    //
+    // V10.2 变更摘要：
+    //  [架构] 彻底移除 augments_db.js 离线保底文件依赖（部署包精简为5个文件）
+    //         替代机制更可靠：拉取失败自动回退"上一次成功的数据"（含跨版本扫描），
+    //         成功加载过一次后，断网也能正常查看全部图鉴
+    //  [界面] 浅色主题等级色板：白底下描边加深 + 卡片底色微染（棱彩紫/黄金米/
+    //         白银灰/特殊蓝/已吃鸡金），等级一眼可辨；整体文字对比度提升
+    // ==========================================================================
+
+    'use strict';
+
+    // ---------- 存储与主题 ----------
+    const KEYS = {
+        legacy: 'arena_completed_champs',     // 旧版进度（纯ID数组），保留同步写入以兼容旧备份
+        records: 'arena_win_records_v1',      // 新版进度：[{id, ts}]，ts 为吃鸡时间戳（旧数据迁移后为 null）
+        theme: 'arena_theme',
+        prefs: 'arena_ui_prefs',              // 界面偏好：{ view, sort }
+        snapshot: 'arena_data_snapshot_v1'    // 版本变动侦测：上次见到的数据指纹
+    };
+    const CACHE_PREFIX = 'arena_cache_';
+    const AUG_CACHE_KEY = CACHE_PREFIX + 'augs_v10'; // v10起缓存"原始数据"，渲染规则升级后无需清缓存
+    const AUG_CACHE_TTL = 24 * 3600 * 1000;
+
+    // 主题需在数据加载前应用，避免闪屏；未手动选择过时默认跟随系统
+    (function initTheme() {
+        const saved = localStorage.getItem(KEYS.theme);
+        if (saved === 'light' || saved === 'dark') {
+            document.body.dataset.theme = saved;
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+            document.body.dataset.theme = 'light';
+        }
+        // 系统主题变化时同步（仅当用户未手动指定过）
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', e => {
+                if (!localStorage.getItem(KEYS.theme)) {
+                    document.body.dataset.theme = e.matches ? 'light' : 'dark';
+                    updateThemeButton();
+                }
+            });
+        }
+    })();
+
+    function toggleTheme() {
+        const next = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
+        document.body.dataset.theme = next;
+        localStorage.setItem(KEYS.theme, next);
+        updateThemeButton();
+    }
+    function updateThemeButton() {
+        const btn = document.getElementById('btn-theme');
+        btn.textContent = document.body.dataset.theme === 'dark' ? '🌙' : '☀️';
+        btn.title = document.body.dataset.theme === 'dark' ? '切换为浅色主题' : '切换为暗色主题';
+    }
+
+    // ---------- 界面偏好（视图/排序自动记忆）----------
+    function savePrefs() {
+        try { localStorage.setItem(KEYS.prefs, JSON.stringify({ view: isListView ? 'list' : 'grid', sort: currentSortMode })); } catch(e) {}
+    }
+    function loadPrefs() {
+        try {
+            const p = JSON.parse(localStorage.getItem(KEYS.prefs) || '{}');
+            if (p.view === 'list') {
+                isListView = true;
+                document.getElementById('btn-view').innerHTML = '🔲 网格';
+                ['champions', 'augments', 'items'].forEach(tab => {
+                    const c = document.getElementById(`container-${tab}`);
+                    c.classList.remove('view-grid'); c.classList.add('view-list');
+                });
+            }
+            if (p.sort === 'uncompletedFirst') {
+                currentSortMode = 'uncompletedFirst';
+                document.getElementById('btn-sort').innerHTML = '⬇️ 沉底';
+            }
+        } catch(e) {}
+    }
+
+    // ---------- 战绩记录（含日期）----------
+    // 读取记录；首次运行自动从旧版纯ID数组迁移（旧数据无日期，ts=null）
+    function getRecords() {
+        try {
+            const raw = localStorage.getItem(KEYS.records);
+            if (raw) {
+                const arr = JSON.parse(raw);
+                if (Array.isArray(arr)) return arr.filter(r => r && r.id);
+            }
+        } catch(e) {}
+        // 迁移旧数据
+        try {
+            const legacy = JSON.parse(localStorage.getItem(KEYS.legacy) || '[]');
+            if (Array.isArray(legacy) && legacy.length > 0) {
+                const migrated = legacy.map(id => ({ id, ts: null }));
+                saveRecords(migrated);
+                return migrated;
+            }
+        } catch(e) {}
+        return [];
+    }
+    function saveRecords(records) {
+        localStorage.setItem(KEYS.records, JSON.stringify(records));
+        // 同步镜像写入旧键（纯ID数组），保证旧版页面/旧备份格式仍然可读
+        localStorage.setItem(KEYS.legacy, JSON.stringify(records.map(r => r.id)));
+    }
+    function getCompleted() { return getRecords().map(r => r.id); }
+    function addWin(champId) {
+        const records = getRecords();
+        if (!records.some(r => r.id === champId)) {
+            records.push({ id: champId, ts: Date.now() });
+            saveRecords(records);
+        }
+    }
+    function removeWin(champId) {
+        saveRecords(getRecords().filter(r => r.id !== champId));
+    }
+
+    // ---------- 工具函数 ----------
+    function escapeHtml(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+    }
+    function debounce(fn, ms) {
+        let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+    }
+    function formatDate(ts) {
+        if (!ts) return '早期记录';
+        const d = new Date(ts);
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    // ---------- 海克斯：官方稀有度与描述渲染 ----------
+    const AUG_RARITY_MAP = { 0: 'Silver', 1: 'Gold', 2: 'Prismatic' };
+    function tierOfRarity(r) { return AUG_RARITY_MAP[r] || 'Special'; }
+    const TIER_LABEL = { 'Silver': '白银', 'Gold': '黄金', 'Prismatic': '棱彩', 'Special': '特殊' };
+    const TIER_RANK = { 'Silver': 0, 'Gold': 1, 'Prismatic': 2, 'Special': 3 };       // 海克斯默认顺序
+    const ITEM_CAT_RANK = { 'Prismatic': 0, 'Legendary': 1, 'Boots': 2, 'Consumable': 3, 'Other': 4 }; // 装备分类顺序
+    const ITEM_CAT_LABEL = { 'Prismatic': '棱镜装备', 'Legendary': '神话/传说', 'Boots': '鞋子', 'Consumable': '消耗品', 'Other': '其他' };
+
+    // 渲染官方描述：把数值占位符换成实际数值，并清理所有模板代码残留
+    //  1. @Key@ / @Key*100@        → 实际数值；多级数值显示为 "20/40/60"
+    //  2. %i:scaleAP% 等图标令牌    → 对应属性符号（官方客户端里是小图标）
+    //  3. @spell.xxx:yyy@ 等复杂表达式、{{...}} 模板引用 → 无法在站外解析，优雅清除
+    const STAT_ICON_MAP = {
+        scaleAD: '⚔', scaleAP: '✦', scaleHealth: '♥', scaleHP: '♥', scaleMaxHealth: '♥',
+        scaleArmor: '🛡', scaleMR: '◈', scaleMS: '➤', scaleLevel: '▲', scaleMana: '◉',
+        scaleAS: '⚡', scaleCrit: '✸', scaleLethality: '🗡', scaleHaste: '⏱',
+        Augment: '🔮', scaleAdaptive: '✥', scaleTrueDamage: '✧', scaleOmnivamp: '🩸',
+        scaleGold: '🪙', scaleRange: '↔'
+    };
+    function renderAugDesc(desc, dataValues) {
+        if (!desc) return '';
+        const fmtNum = (n, factor) => {
+            const x = Math.round(n * factor * 100) / 100;
+            return Number.isInteger(x) ? x.toString() : x.toFixed(1).replace(/\.0$/, '');
+        };
+        let out = desc
+            // 第一步：解析简单占位符 @Key@ / @Key*100@
+            .replace(/@([A-Za-z0-9_]+)(\*100)?@/g, (m, key, mult) => {
+                let v = dataValues ? dataValues[key] : undefined;
+                const factor = mult ? 100 : 1;
+                if (Array.isArray(v)) return [...new Set(v.map(n => fmtNum(n, factor)))].slice(0, 3).join('/');
+                if (typeof v === 'number') return fmtNum(v, factor);
+                return '\u0000'; // 解析失败先打标记，最后统一清理
+            })
+            // 第二步：剩余的复杂表达式（含 . : * - 等符号的 @...@）整体清除
+            .replace(/@[^@\n]{1,80}@/g, '\u0000')
+            // 第三步：图标令牌 → 属性符号
+            .replace(/%i:([A-Za-z0-9_]+)%/g, (m, key) => STAT_ICON_MAP[key] || '')
+            // 第四步：{{ 模板引用 }} 清除
+            .replace(/\{\{[^}]*\}\}/g, '');
+        // 清理失败标记及其紧贴的孤立符号（如 "\u0000%" → ""），避免残留奇怪字符
+        out = out.replace(/\u0000%?/g, '?');
+        // 折叠因清理产生的连续空格
+        return out.replace(/[ \t]{2,}/g, ' ');
+    }
+
+    // 【保底】SVG 图标渲染器（官方图标加载失败时的兜底显示）
+    function generateAugmentIconSVG(name, tier) {
+        const colors = {
+            'Prismatic': { bg1: '#c678dd', bg2: '#8a2be2', border: '#e0b0ff' },
+            'Gold': { bg1: '#d4af37', bg2: '#b8860b', border: '#f3d473' },
+            'Silver': { bg1: '#a0aab5', bg2: '#708090', border: '#cfd8dc' },
+            'Special': { bg1: '#5bc0de', bg2: '#2a7f9e', border: '#a8e0f0' }
+        };
+        const c = colors[tier] || colors['Silver'];
+        const letter = name ? name.charAt(0) : '?';
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${c.bg1}"/><stop offset="100%" stop-color="${c.bg2}"/></linearGradient></defs><rect width="100" height="100" rx="20" fill="url(#g)" stroke="${c.border}" stroke-width="4"/><circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-dasharray="6 4"/><text x="50" y="66" font-family="Arial, sans-serif" font-size="46" font-weight="bold" fill="#ffffff" text-anchor="middle">${letter}</text></svg>`;
+        return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+    }
+
+    // ---------- 全局状态 ----------
+    let globalVersion = '';
+    let currentTab = 'champions';
+    let appData = { champions: [], augments: [], items: [] };
+    let skillCache = {};
+
+    let currentFilter = 'All';
+    let currentSearchKeyword = '';
+    let currentSortMode = 'default';
+    let isListView = false;
+    let lastCompletedCount = -1;
+    let tarotPickedIds = [];
+    let tarotCanClose = false;
+    let hoverCardEl = null;
+    let liveFlags = { augs: false, items: false }; // 数据是否来自官方实时源（版本侦测仅在权威数据下运行）
+
+    const ROLE_FILTERS = { "All": "全部英雄", "Fighter": "战士", "Mage": "法师", "Assassin": "刺客", "Marksman": "射手", "Tank": "坦克", "Support": "辅助" };
+    const ROLE_ORDER = ["Fighter", "Mage", "Assassin", "Marksman", "Tank", "Support"];
+    function champRole(champ) {
+        return ROLE_ORDER.includes(champ.tags[0]) ? champ.tags[0] : 'Fighter';
+    }
+
+    const CHAMPION_ALIAS = {
+        Aatrox:['亚托克斯','剑魔','jianmo','jm','aatrox'], Ahri:['阿狸','九尾妖狐','ali','ahri'],
+        Akali:['阿卡丽','akali'], Akshan:['阿克尚','akeshang','akshan'], Alistar:['牛头','阿利斯塔','niutou','nt','alistar'],
+        Amumu:['阿木木','amumu'], Anivia:['冰鸟','艾尼维亚','bingniao','bn','anivia'], Annie:['安妮','annie'],
+        Aphelios:['厄斐琉斯','efeiliusi','efls','aphelios'], Ashe:['艾希','aixi','ashe'],
+        AurelionSol:['龙王','奥瑞利安索尔','longwang','lw','aurelionsol'], Azir:['沙皇','阿兹尔','shahuang','sh','azir'],
+        Bard:['巴德','bade','bard'], Belveth:['卑尔维斯','beierweisi','bews','belveth'],
+        Blitzcrank:['机器人','布里茨','jiqiren','jqr','blitzcrank'], Brand:['火男','布兰德','huonan','hn','brand'],
+        Braum:['布隆','bulong','braum'], Briar:['狂厄蔷薇','贝蕾亚','beileiya','bly','briar'],
+        Caitlyn:['凯特琳','女警','nvjing','nj','caitlyn'], Camille:['青钢影','卡蜜尔','qinggangying','qgy','camille'],
+        Cassiopeia:['蛇女','卡西奥佩娅','shenv','sn','cassiopeia'], ChoGath:['大虫子','科加斯','dachongzi','dcz','chogath'],
+        Corki:['库奇','飞机','feiji','fj','corki'], Darius:['诺手','德莱厄斯','nuoshou','ns','darius'],
+        Diana:['皎月','黛安娜','jiaoyue','jy','diana'], DrMundo:['蒙多','mengduo','md','drmundo'],
+        Draven:['德莱文','delaiwen','dlw','draven'], Ekko:['艾克','aike','ak','ekko'], Elise:['蜘蛛','伊莉丝','zhizhu','zz','elise'],
+        Evelynn:['寡妇','伊芙琳','guafu','gf','evelynn'], Ezreal:['伊泽瑞尔','yizeruier','ez','ezreal'],
+        Fiddlesticks:['稻草人','费德提克','daocaoren','dcr','fiddlesticks'], Fiora:['剑姬','菲奥娜','jianji','jj','fiora'],
+        Fizz:['小鱼人','菲兹','xiaoyuren','xyr','fizz'], Galio:['加里奥','jialiao','jla','galio'],
+        Gangplank:['船长','普朗克','chuanzhang','cz','gangplank'], Garen:['盖伦','gailun','gl','garen'],
+        Gnar:['纳尔','naer','ne','gnar'], Gragas:['酒桶','古拉加斯','jiutong','jt','gragas'],
+        Graves:['男枪','格雷福斯','nanqiang','nq','graves'], Gwen:['格温','gewen','gw','gwen'],
+        Hecarim:['人马','赫卡里姆','renma','rm','hecarim'], Heimerdinger:['大发明家','黑默丁格','dafamingjia','dfmj','heimerdinger'],
+        Hwei:['异画师','慧','hui','hwei'], Illaoi:['俄洛伊','eluoyi','ely','illaoi'], Irelia:['刀妹','艾瑞莉娅','daomei','dm','irelia'],
+        Ivern:['艾翁','aiweng','aw','ivern'], Janna:['风女','迦娜','fengnv','fn','janna'],
+        JarvanIV:['皇子','嘉文四世','huangzi','hz','jarvaniv'], Jax:['武器','贾克斯','wuqi','wq','jax'],
+        Jayce:['杰斯','jiesi','js','jayce'], Jhin:['烬','jin','jhin'], Jinx:['金克丝','jinkesi','jks','jinx'],
+        KaiSa:['卡莎','kaisha','ks','kaisa'], Kalista:['滑板鞋','卡莉丝塔','huabanxie','hbx','kalista'],
+        Karma:['卡尔玛','kaerma','kem','karma'], Kassadin:['卡萨丁','kasading','ksd','kassadin'],
+        Katarina:['卡特琳娜','katelinna','ktln','katarina'], Kayle:['凯尔','天使','tianshi','ts','kayle'],
+        Kayn:['凯隐','kaiyin','ky','kayn'], Kennen:['凯南','kainan','kn','kennen'], KhaZix:['螳螂','卡兹克','tanglang','tl','khazix'],
+        Kindred:['千珏','qianjue','qj','kindred'], Kled:['克烈','kelie','kl','kled'], KogMaw:['大嘴','克格莫','dazui','dz','kogmaw'],
+        LeBlanc:['妖姬','乐芙兰','yaoji','yj','leblanc'], LeeSin:['盲僧','李青','mangseng','ms','leesin'],
+        Leona:['蕾欧娜','日女','rinv','rn','leona'], Lillia:['莉莉娅','liliya','lly','lillia'],
+        Lissandra:['冰女','丽桑卓','bingnv','bn','lissandra'], Lucian:['卢锡安','luxian','lxa','lucian'],
+        Lulu:['璐璐','lulu','ll','lulu'], Lux:['拉克丝','lakesi','lks','lux'], Malphite:['石头人','墨菲特','shitouren','str','malphite'],
+        Malzahar:['蚂蚱','玛尔扎哈','mazha','mz','malzahar'], Maokai:['大树','茂凯','dashu','ds','maokai'],
+        MasterYi:['剑圣','易大师','jiansheng','js','masteryi'], Milio:['米利欧','miliou','milio'],
+        MissFortune:['女枪','厄运小姐','nvqiang','nq','missfortune'], Mordekaiser:['铁男','莫德凯撒','tienan','tn','mordekaiser'],
+        Morgana:['莫甘娜','moganna','mgn','morgana'], Naafiri:['纳亚菲利','nayafaili','nyfl','naafiri'],
+        Nami:['娜美','namei','nm','nami'], Nasus:['狗头','内瑟斯','goutou','gt','nasus'],
+        Nautilus:['泰坦','诺提勒斯','taitan','tt','nautilus'], Neeko:['妮蔻','nikou','nk','neeko'],
+        Nidalee:['豹女','奈德丽','baonv','bn','nidalee'], Nilah:['尼菈','nila','nl','nilah'],
+        Nocturne:['梦魇','魔腾','mengyan','my','nocturne'], Nunu:['努努','nunu','nn','nunu'],
+        Olaf:['奥拉夫','aolafu','alf','olaf'], Orianna:['发条','奥莉安娜','fatiao','ft','orianna'],
+        Ornn:['奥恩','aoen','ae','ornn'], Pantheon:['潘森','pansen','ps','pantheon'], Poppy:['波比','bobi','bb','poppy'],
+        Pyke:['派克','paike','pk','pyke'], Qiyana:['奇亚娜','qiyana','qyn','qiyana'], Quinn:['奎因','kuiyin','ky','quinn'],
+        Rakan:['洛','luo','rakan'], Rammus:['龙龟','拉莫斯','longgui','lg','rammus'], RekSai:['挖掘机','雷克塞','wajueji','wjj','reksai'],
+        Rell:['芮尔','ruier','re','rell'], Renata:['烈娜塔','lienata','lnt','renata'], Renekton:['鳄鱼','雷克顿','eyu','ey','renekton'],
+        Rengar:['狮子狗','雷恩加尔','shizigou','szg','rengar'], Riven:['锐雯','ruiwen','rw','riven'],
+        Rumble:['兰博','lanbo','lb','rumble'], Ryze:['瑞兹','ruizi','rz','ryze'], Samira:['莎弥拉','shamila','sml','samira'],
+        Sejuani:['猪妹','瑟庄妮','zhumei','zm','sejuani'], Senna:['赛娜','saina','sn','senna'],
+        Seraphine:['萨勒芬妮','salefenni','slfn','seraphine'], Sett:['瑟提','腕豪','wanhao','wh','sett'],
+        Shaco:['小丑','萨科','xiaochou','xc','shaco'], Shen:['慎','shen'], Shyvana:['龙女','希瓦娜','longnv','ln','shyvana'],
+        Singed:['炼金','辛吉德','lianjin','lj','singed'], Sion:['塞恩','saien','se','sion'],
+        Sivir:['希维尔','轮子妈','lunzima','lzm','sivir'], Skarner:['蝎子','斯卡纳','xiezi','xz','skarner'],
+        Smolder:['斯莫德','小火龙','xiaohuolong','xhl','smolder'], Sona:['琴女','娑娜','qinnv','qn','sona'],
+        Soraka:['索拉卡','星妈','xingma','xm','soraka'], Swain:['乌鸦','斯维因','wuya','wy','swain'],
+        Sylas:['塞拉斯','sailasi','sls','sylas'], Syndra:['辛德拉','xindela','xdl','syndra'],
+        TahmKench:['塔姆','tamu','tm','tahmkench'], Taliyah:['岩雀','塔莉垭','yanque','yq','taliyah'],
+        Talon:['男刀','泰隆','nandao','nd','talon'], Taric:['宝石','塔里克','baoshi','bs','taric'],
+        Teemo:['提莫','timo','tm','teemo'], Thresh:['锤石','chuishi','cs','thresh'], Tristana:['小炮','崔丝塔娜','xiaopao','xp','tristana'],
+        Trundle:['巨魔','特朗德尔','jumo','jm','trundle'], Tryndamere:['蛮王','泰达米尔','manwang','mw','tryndamere'],
+        TwistedFate:['卡牌','崔斯特','kapai','kp','twistedfate'], Twitch:['老鼠','图奇','laoshu','ls','twitch'],
+        Udyr:['乌迪尔','wudier','wde','udyr'], Urgot:['厄加特','ejiate','ejt','urgot'], Varus:['维鲁斯','weilusi','wls','varus'],
+        Vayne:['薇恩','weien','we','vayne'], Veigar:['小法','维迦','xiaofa','xf','veigar'], VelKoz:['大眼','维克兹','dayan','dy','velkoz'],
+        Vex:['薇古丝','weigusi','wgs','vex'], Vi:['蔚','wei','vi'], Viktor:['维克托','weiketuo','wkt','viktor'],
+        Vladimir:['吸血鬼','弗拉基米尔','xixuegui','xxg','vladimir'], Volibear:['狗熊','沃利贝尔','gouxiong','gx','volibear'],
+        Warwick:['狼人','沃里克','langren','lr','warwick'], Wukong:['猴子','悟空','houzi','hz','wukong'],
+        Xayah:['霞','xia','xayah'], Xerath:['泽拉斯','zelasi','zls','xerath'], XinZhao:['赵信','zhaoxin','zx','xinzhao'],
+        Yasuo:['亚索','yasuo','ys'], Yone:['永恩','yongen','ye','yone'], Yorick:['约里克','yuelike','ylk','yorick'],
+        Yuumi:['悠米','youmi','ym','yuumi'], Zac:['扎克','zhake','zk','zac'], Zed:['劫','jie','zed'],
+        Zeri:['泽丽','zeli','zl','zeri'], Ziggs:['炸弹人','吉格斯','zhadanren','zdr','ziggs'],
+        Zilean:['时光','基兰','shiguang','sg','zilean'], Zoe:['佐伊','zuoyi','zy','zoe'], Zyra:['婕拉','jiela','jl','zyra'],
+        Ambessa:['安蓓萨', '双刃', 'anbeisa', 'abs', 'ambessa']
+    };
+
+    function parseCDragonImgUrl(internalPath, targetPatch = 'latest') {
+        if (!internalPath) return '';
+        const cleanPath = internalPath.toLowerCase().replace('/lol-game-data/assets/', '');
+        return `https://raw.communitydragon.org/${targetPatch}/plugins/rcp-be-lol-game-data/global/default/${cleanPath}`;
+    }
+
+    // ---------- 缓存 ----------
+    // 拉取失败时回退"上一次成功的数据"（即使已过期）——这是离线/接口故障的兜底机制
+    async function loadDataWithCache(cacheKey, processorCallback, ttlMs = 0) {
+        let cached = null;
+        try {
+            const raw = localStorage.getItem(cacheKey);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && Array.isArray(parsed.data) && parsed.data.length > 0) {
+                    cached = parsed;
+                    const fresh = !ttlMs || (Date.now() - (parsed.t || 0) < ttlMs);
+                    if (fresh) return parsed.data;
+                }
+            }
+        } catch(e) { console.warn("Cache corrupted:", cacheKey); }
+
+        try {
+            const data = await processorCallback();
+            if (!data || data.length === 0) throw new Error("API返回空数据");
+            try { localStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), data })); } catch(e) {}
+            return data;
+        } catch(err) {
+            // 网络/接口故障：有过期缓存就用过期缓存（不刷新时间戳，下次仍会尝试重新拉取）
+            if (cached) {
+                console.warn('⚠️ 拉取失败，已回退上一次成功的数据:', cacheKey);
+                return cached.data;
+            }
+            throw err;
+        }
+    }
+
+    // 最后防线：拉取失败且当前版本键无缓存时，扫描任意历史版本的缓存顶上
+    function readAnyCache(prefix) {
+        try {
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith(prefix)) {
+                    const parsed = JSON.parse(localStorage.getItem(k));
+                    if (parsed && Array.isArray(parsed.data) && parsed.data.length > 0) return parsed.data;
+                }
+            }
+        } catch(e) {}
+        return null;
+    }
+
+    function pruneOldCaches(validKeys) {
+        try {
+            const toRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith(CACHE_PREFIX) && !validKeys.includes(k)) toRemove.push(k);
+            }
+            toRemove.forEach(k => localStorage.removeItem(k));
+        } catch(e) {}
+    }
+
+    // ---------- 骨架屏 ----------
+    function showSkeletons(tab, count = 14) {
+        const container = document.getElementById(`container-${tab}`);
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < count; i++) {
+            const sk = document.createElement('div');
+            sk.className = 'skeleton-card';
+            frag.appendChild(sk);
+        }
+        container.appendChild(frag);
+    }
+    function clearSkeletons(tab) {
+        document.querySelectorAll(`#container-${tab} .skeleton-card`).forEach(el => el.remove());
+    }
+
+    // 加载失败提示 + 一键重试
+    function showLoadError(tab, msgHtml) {
+        const el = document.getElementById(`emptyState-${tab}`);
+        el.innerHTML = msgHtml + '<br><br>';
+        const btn = document.createElement('button');
+        btn.className = 'tool-btn';
+        btn.style.cssText = 'display:inline-flex;margin:0 auto;';
+        btn.textContent = '🔄 重新加载';
+        btn.addEventListener('click', () => location.reload());
+        el.appendChild(btn);
+        el.classList.add('show');
+    }
+
+    // ---------- 初始化 ----------
+    async function init() {
+        updateThemeButton();
+        bindGlobalEvents();
+        loadPrefs();
+
+        // 构建英雄职业筛选栏
+        const fBarC = document.getElementById('filter-bar-champions');
+        fBarC.innerHTML = '';
+        for (const [key, name] of Object.entries(ROLE_FILTERS)) {
+            const btn = document.createElement('button');
+            btn.className = `filter-btn ${key === 'All' ? 'active' : ''}`;
+            btn.textContent = name;
+            btn.dataset.filter = key;
+            fBarC.appendChild(btn);
+        }
+
+        ['champions', 'augments', 'items'].forEach(t => showSkeletons(t));
+        document.getElementById('statsDisplayNum').innerText = "...";
+
+        // 默认备用版本列表（防崩溃）
+        let versions = ['16.11.1', '16.10.1', '16.9.1', '14.22.1'];
+        try {
+            const verRes = await fetch('https://ddragon.leagueoflegends.com/api/versions.json');
+            versions = await verRes.json();
+            globalVersion = versions[0];
+        } catch(e) {
+            console.warn("获取版本号失败，使用本地备用版本");
+            globalVersion = versions[0];
+        }
+
+        const champCacheKey = `${CACHE_PREFIX}champs_v9_${globalVersion}`;
+        const itemCacheKey = `${CACHE_PREFIX}items_v11_${globalVersion}`;
+
+        // 1. 英雄（智能版本降级重试）
+        try {
+            appData.champions = await loadDataWithCache(champCacheKey, async () => {
+                let cData;
+                let activeVersion = globalVersion;
+                for (let i = 0; i < Math.min(10, versions.length); i++) {
+                    try {
+                        const testVersion = versions[i];
+                        const cRes = await fetch(`https://ddragon.leagueoflegends.com/cdn/${testVersion}/data/zh_CN/champion.json`);
+                        if (!cRes.ok) throw new Error("HTTP Status " + cRes.status);
+                        cData = await cRes.json();
+                        activeVersion = testVersion;
+                        globalVersion = testVersion;
+                        console.log(`✅ 成功接入版本: ${activeVersion}`);
+                        break;
+                    } catch(err) {
+                        console.warn(`⚠️ 版本 ${versions[i]} 数据尚未就绪，尝试降级...`);
+                    }
+                }
+                if(!cData) throw new Error("所有近期版本均拉取失败");
+                return Object.values(cData.data).map(c => ({
+                    id: c.id, name: c.name, tags: c.tags,
+                    img: `https://ddragon.leagueoflegends.com/cdn/${activeVersion}/img/champion/${c.image.full}`
+                }));
+            });
+        } catch(e) {
+            console.error("英雄数据加载失败", e);
+            appData.champions = readAnyCache(CACHE_PREFIX + 'champs_') || [];
+            if (appData.champions.length) showToast('⚠️ 网络异常，英雄数据使用历史缓存显示');
+            else showLoadError('champions', "⚠️ 英雄数据拉取失败。<br><br>原因：可能是拳头官方API维护中，或者网络被拦截。<br>建议：尝试开启/关闭游戏加速器后重试。");
+        } finally { clearSkeletons('champions'); }
+
+        // 2. 装备（latest，跟随当前版本；按 棱镜/传说/鞋子/消耗品/其他 分类）
+        try {
+            appData.items = await loadDataWithCache(itemCacheKey, async () => {
+                const res = await fetch(`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/zh_cn/v1/items.json`);
+                if (!res.ok) throw new Error("网络错误");
+                const rawItems = await res.json();
+
+                // —— 棱镜装备识别（双保险）——
+                // 严格规则：官方在棱镜装备描述里打的 <rarityMythic> 神话稀有度标记
+                const strictPrismatic = it => (it.priceTotal === 0 || it.priceTotal === 4000) &&
+                                              (it.description || '').includes('<rarityMythic>');
+                // 宽松回退：若官方某天换掉了标记导致严格规则颗粒无收，退而求其次
+                const loosePrismatic = it => (it.priceTotal === 0 || it.priceTotal === 4000) &&
+                                             !it.inStore && (it.description || '').length > 60 &&
+                                             !(it.categories || []).some(c => ['Trinket','Consumable','Boots','Jungle','Lane'].includes(c));
+                const useStrict = rawItems.some(strictPrismatic);
+                const isPrismatic = useStrict ? strictPrismatic : loosePrismatic;
+                if (!useStrict) console.warn('⚠️ rarityMythic 标记缺失，棱镜装备已切换宽松识别规则');
+
+                // 分类判定：返回类别名，不收录则返回 null
+                function classifyItem(item) {
+                    const cats = item.categories || [];
+                    const name = item.name || '';
+                    // 排除明显的非图鉴对象：饰品、限定英雄/盟友道具、无名内部道具
+                    if (cats.includes('Trinket')) return null;
+                    if (item.requiredChampion || item.requiredAlly) return null;
+                    if (!name || name.startsWith('@') || /^测试|^Test/i.test(name)) return null;
+
+                    if (isPrismatic(item)) return 'Prismatic';                          // 棱镜/竞技场专属
+                    if (cats.includes('Boots') && item.inStore) return 'Boots';        // 鞋子（含基础长靴与升级鞋）
+                    if (cats.includes('Consumable') && item.inStore && item.priceTotal > 0) return 'Consumable'; // 消耗品
+                    if (item.priceTotal >= 2000 && item.inStore !== false) return 'Legendary'; // 传统神话/传说（排除非商店的内部高价物）
+                    return null;
+                }
+
+                const uniqueMap = new Map();
+                rawItems.forEach(item => {
+                    const cat = classifyItem(item);
+                    if (!cat) return;
+                    item._cat = cat;
+                    if (!uniqueMap.has(item.name)) uniqueMap.set(item.name, item);
+                    else {
+                        const exist = uniqueMap.get(item.name);
+                        // 棱镜分类优先级最高，避免同名普通版本覆盖
+                        if (exist._cat !== 'Prismatic' && item._cat === 'Prismatic') uniqueMap.set(item.name, item);
+                        else if (exist._cat === item._cat) {
+                            if (!exist.inStore && item.inStore) uniqueMap.set(item.name, item);
+                            else if (exist.inStore === item.inStore && (item.description || '').length > (exist.description || '').length) uniqueMap.set(item.name, item);
+                        }
+                    }
+                });
+                return Array.from(uniqueMap.values()).map(item => ({
+                    id: item.id.toString(), name: item.name, price: item.priceTotal, cat: item._cat,
+                    rawDesc: item.description || '', desc: (item.description || '').replace(/<[^>]+>/g, ''),
+                    img: parseCDragonImgUrl(item.iconPath, 'latest')
+                }));
+            });
+            liveFlags.items = appData.items.length > 0;
+        } catch(e) {
+            console.error("装备数据加载失败", e);
+            appData.items = readAnyCache(CACHE_PREFIX + 'items_') || [];
+            if (!appData.items.length) showLoadError('items', "⚠️ 装备百科加载失败。<br>可能是 CommunityDragon 服务器波动。");
+        } finally { clearSkeletons('items'); }
+
+        // 3. 海克斯（官方实时数据，含真实图标与官方中文描述）
+        // 注意：缓存的是"原始数据"，描述渲染在读取后实时进行——
+        // 这样描述清洗规则升级后立即生效，不会被 24 小时缓存卡住旧结果
+        try {
+            const rawAugs = await loadDataWithCache(AUG_CACHE_KEY, async () => {
+                const res = await fetch('https://raw.communitydragon.org/latest/cdragon/arena/zh_cn.json');
+                if (!res.ok) throw new Error("HTTP Status " + res.status);
+                const json = await res.json();
+                if (!json.augments || json.augments.length === 0) throw new Error("Arena数据为空");
+                return json.augments.map(a => ({
+                    id: a.id, name: a.name, rarity: a.rarity,
+                    desc: a.desc, dataValues: a.dataValues,
+                    icon: a.iconLarge || a.iconSmall || ''
+                }));
+            }, AUG_CACHE_TTL);
+
+            appData.augments = rawAugs.map(a => {
+                const tier = tierOfRarity(a.rarity);
+                const rendered = renderAugDesc(a.desc, a.dataValues);
+                return {
+                    id: 'aug_' + a.id,
+                    name: a.name,
+                    tier: tier,
+                    rawDesc: rendered,
+                    desc: rendered.replace(/<[^>]+>/g, ''),
+                    img: 'https://raw.communitydragon.org/latest/game/' + a.icon.toLowerCase(),
+                    fallbackImg: generateAugmentIconSVG(a.name, tier)
+                };
+            });
+            liveFlags.augs = appData.augments.length > 0;
+        } catch(e) {
+            // 走到这里说明：拉取失败且本地连一份过期缓存都没有（如首次打开就断网）
+            console.error("官方海克斯数据拉取失败，且无历史缓存可回退", e);
+            showLoadError('augments', "⚠️ 官方海克斯数据拉取失败。<br>请检查网络后重试（成功加载过一次后，之后断网也能查看）。");
+        } finally { clearSkeletons('augments'); }
+
+        if (appData.champions.length > 0) {
+            switchTab('champions');
+        } else {
+            document.getElementById('statsDisplayNum').innerText = "加载失败";
+            document.getElementById('emptyState-champions').classList.add('show');
+        }
+
+        // 全部数据就绪后执行版本变动侦测
+        detectDataChanges();
+
+        // 数据全部加载成功后再清理旧版本缓存（任一失败则保留，留作下次回退）
+        if (appData.champions.length && appData.items.length && appData.augments.length) {
+            pruneOldCaches([champCacheKey, itemCacheKey, AUG_CACHE_KEY]);
+        }
+
+        // 扫码链接打开时的进度自动导入
+        checkHashImport();
+    }
+
+    // ---------- PWA：Service Worker 注册（仅 http/https 托管环境生效，本地 file:// 自动跳过） ----------
+    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW 注册失败:', err));
+        });
+    }
+
+    // ---------- 事件委托（全站统一绑定，无内联 onclick）----------
+    function bindGlobalEvents() {
+        // 顶部 Tab
+        document.querySelector('.tabs-header').addEventListener('click', e => {
+            const btn = e.target.closest('.tab-btn');
+            if (btn) switchTab(btn.dataset.tab);
+        });
+
+        // 工具按钮
+        document.getElementById('btn-theme').addEventListener('click', toggleTheme);
+        document.getElementById('btn-poster').addEventListener('click', generatePoster);
+        document.getElementById('btn-random').addEventListener('click', pickRandomChampion);
+        document.getElementById('btn-sort').addEventListener('click', toggleSort);
+        document.getElementById('btn-view').addEventListener('click', toggleViewMode);
+        document.getElementById('btn-stats').addEventListener('click', openStatsModal);
+        document.getElementById('btn-export').addEventListener('click', exportData);
+        document.getElementById('btn-import').addEventListener('click', () => document.getElementById('importFile').click());
+        document.getElementById('btn-reset').addEventListener('click', resetData);
+        document.getElementById('focusModeToggle').addEventListener('change', () => applyFilters());
+        document.getElementById('scroll-top-btn').addEventListener('click', () => window.scrollTo(0, 0));
+
+        // 筛选栏（委托）
+        document.querySelectorAll('.filter-bar').forEach(bar => {
+            bar.addEventListener('click', e => {
+                const btn = e.target.closest('.filter-btn');
+                if (btn && btn.dataset.filter) applyFilters(btn.dataset.filter);
+            });
+        });
+
+        // 卡片容器（委托：点击 + 悬浮提示）
+        ['champions', 'augments', 'items'].forEach(tab => {
+            const container = document.getElementById(`container-${tab}`);
+            container.addEventListener('click', e => {
+                if (e.target.closest('a')) return; // 外链不拦截
+                const card = e.target.closest('.data-card');
+                if (card && tab === 'champions') toggleStatus(card.dataset.id, card.dataset.name);
+            });
+            container.addEventListener('mouseover', e => {
+                const card = e.target.closest('.data-card');
+                if (card && card !== hoverCardEl) {
+                    hoverCardEl = card;
+                    showContextTooltip(e, card.dataset.id, card.dataset.name);
+                }
+            });
+            container.addEventListener('mousemove', e => {
+                if (e.target.closest('.data-card')) moveTooltip(e);
+            });
+            container.addEventListener('mouseout', e => {
+                const card = e.target.closest('.data-card');
+                if (card && !card.contains(e.relatedTarget)) { hoverCardEl = null; hideTooltip(); }
+            });
+        });
+
+        // 统计模态框关闭
+        document.getElementById('stats-close').addEventListener('click', closeStatsModal);
+        document.getElementById('stats-modal').addEventListener('click', e => {
+            if (e.target === e.currentTarget) closeStatsModal();
+        });
+
+        // 胜率排行（外部实时数据直达）
+        document.getElementById('btn-tier').addEventListener('click', () => {
+            window.open('https://lolalytics.com/lol/tierlist/arena/', '_blank', 'noopener');
+        });
+
+        // 进度迁移
+        document.getElementById('btn-migrate').addEventListener('click', openMigrateModal);
+        document.getElementById('migrate-close').addEventListener('click', () => document.getElementById('migrate-modal').classList.remove('show'));
+        document.getElementById('migrate-modal').addEventListener('click', e => {
+            if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
+        });
+        document.getElementById('migrate-copy').addEventListener('click', () => {
+            const ta = document.getElementById('migrate-code');
+            if (!ta.value) { showToast('暂无可复制的迁移码'); return; }
+            ta.select();
+            const done = () => showToast('📋 迁移码已复制');
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(done).catch(() => { document.execCommand('copy'); done(); });
+            else { document.execCommand('copy'); done(); }
+        });
+        document.getElementById('migrate-import').addEventListener('click', () => {
+            importMigrationCode(document.getElementById('migrate-input').value);
+        });
+
+        // 版本变动横幅与详情
+        document.getElementById('changes-banner-close').addEventListener('click', () => {
+            document.getElementById('changes-banner').classList.remove('show');
+        });
+        document.getElementById('changes-banner-detail').addEventListener('click', () => {
+            document.getElementById('changes-modal').classList.add('show');
+        });
+        document.getElementById('changes-close').addEventListener('click', () => {
+            document.getElementById('changes-modal').classList.remove('show');
+        });
+        document.getElementById('changes-modal').addEventListener('click', e => {
+            if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
+        });
+
+        // 塔罗遮罩
+        document.getElementById('tarot-modal').addEventListener('click', closeTarotModal);
+
+        // 搜索（防抖）
+        document.getElementById('globalSearch').addEventListener('input', debounce(e => {
+            currentSearchKeyword = e.target.value.trim().toLowerCase();
+            applyFilters();
+        }, 150));
+
+        // 导入文件
+        document.getElementById('importFile').addEventListener('change', handleImportFile);
+
+        // 全局快捷键
+        document.addEventListener('keydown', (e) => {
+            const searchInput = document.getElementById('globalSearch');
+            if (e.key === '/' && document.activeElement !== searchInput) { e.preventDefault(); searchInput.focus(); }
+            if (e.key === 'Escape') {
+                if (document.activeElement === searchInput) {
+                    searchInput.value = ''; currentSearchKeyword = ''; searchInput.blur(); applyFilters();
+                } else if (document.getElementById('tarot-modal').classList.contains('show')) {
+                    closeTarotModal();
+                } else if (document.getElementById('migrate-modal').classList.contains('show')) {
+                    document.getElementById('migrate-modal').classList.remove('show');
+                } else if (document.getElementById('changes-modal').classList.contains('show')) {
+                    document.getElementById('changes-modal').classList.remove('show');
+                } else if (document.getElementById('stats-modal').classList.contains('show')) {
+                    closeStatsModal();
+                }
+            }
+        });
+
+        window.addEventListener('scroll', () => {
+            document.getElementById('scroll-top-btn').classList.toggle('visible', window.scrollY > 300);
+        }, { passive: true });
+    }
+
+    // ---------- Tab 与视图 ----------
+    function switchTab(tab) {
+        currentTab = tab; currentFilter = 'All';
+        document.getElementById('globalSearch').value = ''; currentSearchKeyword = '';
+
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+        document.getElementById(`tab-${tab}`).classList.add('active');
+
+        const isChamp = tab === 'champions';
+        document.getElementById('filter-bar-champions').style.display = isChamp ? 'flex' : 'none';
+        document.getElementById('filter-bar-augments').style.display = tab === 'augments' ? 'flex' : 'none';
+        document.getElementById('filter-bar-items').style.display = tab === 'items' ? 'flex' : 'none';
+
+        document.getElementById('stats-box-display').style.display = isChamp ? 'inline-block' : 'none';
+        document.getElementById('progress-container-display').style.display = isChamp ? 'block' : 'none';
+        document.getElementById('btn-random').style.display = isChamp ? 'flex' : 'none';
+        document.getElementById('data-management-group').style.display = isChamp ? 'flex' : 'none';
+
+        lastCompletedCount = -1; renderData(); applyFilters('All'); if(isChamp) updateStatsUI();
+    }
+
+    function animateNumber(elementId, start, end, duration) {
+        const el = document.getElementById(elementId);
+        if(start === end) { el.innerText = end; return; }
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            el.innerText = Math.floor(progress * (end - start) + start);
+            if (progress < 1) window.requestAnimationFrame(step); else el.innerText = end;
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    function updateStatsUI() {
+        if(currentTab !== 'champions') return;
+        const completedCount = getCompleted().length; const total = appData.champions.length;
+        if(total === 0) return;
+        document.getElementById('statsTotalNum').innerText = total;
+        if(lastCompletedCount !== completedCount) { animateNumber('statsDisplayNum', lastCompletedCount === -1 ? 0 : lastCompletedCount, completedCount, 800); lastCompletedCount = completedCount; }
+        const percentage = ((completedCount / total) * 100).toFixed(1);
+        document.getElementById('progressFill').style.width = `${percentage}%`;
+        document.getElementById('progressText').innerText = `${percentage}%`;
+    }
+
+    function toggleSort() {
+        currentSortMode = currentSortMode === 'default' ? 'uncompletedFirst' : 'default';
+        document.getElementById('btn-sort').innerHTML = currentSortMode === 'default' ? '🔄 默认' : '⬇️ 沉底';
+        savePrefs();
+        renderData(); applyFilters();
+    }
+
+    function toggleViewMode() {
+        isListView = !isListView;
+        document.getElementById('btn-view').innerHTML = isListView ? '🔲 网格' : '📝 列表';
+        ['champions', 'augments', 'items'].forEach(tab => {
+            const container = document.getElementById(`container-${tab}`);
+            container.classList.toggle('view-grid', !isListView);
+            container.classList.toggle('view-list', isListView);
+        });
+        savePrefs();
+    }
+
+    // ---------- 渲染（DocumentFragment 一次性插入）----------
+    function buildCard(item) {
+        const card = document.createElement('div');
+        let extraClass = '';
+
+        if (currentTab === 'champions') {
+            if (getCompletedSetCache.has(item.id)) extraClass = 'completed';
+            card.dataset.role = champRole(item);
+        } else if (currentTab === 'augments') {
+            extraClass = `tier-${item.tier.toLowerCase()}`;
+            card.dataset.tier = item.tier;
+        } else if (currentTab === 'items') {
+            extraClass = item.cat === 'Prismatic' ? 'item-card tier-prismatic' : 'item-card';
+            card.dataset.cat = item.cat || 'Other';
+        }
+
+        card.className = `data-card show ${extraClass}`;
+        card.id = `card-${currentTab}-${item.id}`;
+        card.dataset.id = item.id;
+        card.dataset.name = item.name;
+        card.dataset.desc = item.desc || '';
+
+        const isSVG = item.img && item.img.includes('data:image/svg+xml');
+
+        // 头像
+        const avatarBox = document.createElement('div');
+        avatarBox.className = 'avatar-container';
+        const img = document.createElement('img');
+        img.className = isSVG ? 'avatar svg-avatar' : 'avatar';
+        img.src = item.img;
+        img.alt = item.name;
+        img.loading = 'lazy';
+        if (item.fallbackImg) {
+            img.addEventListener('error', function onErr() {
+                img.removeEventListener('error', onErr);
+                img.src = item.fallbackImg;
+                img.classList.add('svg-avatar');
+            });
+        }
+        avatarBox.appendChild(img);
+        card.appendChild(avatarBox);
+
+        // 名称（textContent 自动转义）
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'data-name';
+        nameDiv.textContent = item.name;
+        card.appendChild(nameDiv);
+
+        // 英雄卡：攻略外链
+        if (currentTab === 'champions') {
+            const links = document.createElement('div');
+            links.className = 'links-container';
+            links.innerHTML =
+                `<a href="https://op.gg/lol/modes/arena/${encodeURIComponent(item.id.toLowerCase())}/build" target="_blank" rel="noopener" title="OP.GG 竞技场攻略"><img src="https://s-lol-web.op.gg/favicon.ico" class="site-icon" alt="op.gg"></a>` +
+                `<a href="https://lolalytics.com/lol/${encodeURIComponent(item.id.toLowerCase())}/arena/build/" target="_blank" rel="noopener" title="Lolalytics：海克斯/出装/加点推荐与胜率"><img src="https://lolalytics.com/favicon.ico" class="site-icon" alt="lolalytics"></a>` +
+                `<a href="https://blitz.gg/ja/lol/champions/${encodeURIComponent(item.id)}/arena" target="_blank" rel="noopener" title="Blitz 竞技场攻略"><img src="https://blitz.gg/favicon.ico" class="site-icon" alt="blitz.gg"></a>`;
+            card.appendChild(links);
+        }
+        return card;
+    }
+
+    let getCompletedSetCache = new Set();
+    function renderData() {
+        const container = document.getElementById(`container-${currentTab}`);
+        Array.from(container.children).forEach(child => { if (!child.id || !child.id.startsWith('emptyState')) child.remove(); });
+
+        getCompletedSetCache = new Set(getCompleted());
+        let sortedData = [...appData[currentTab]];
+
+        sortedData.sort((a, b) => {
+            if(currentTab === 'champions' && currentSortMode === 'uncompletedFirst') {
+                const aComp = getCompletedSetCache.has(a.id); const bComp = getCompletedSetCache.has(b.id);
+                if (aComp !== bComp) return aComp ? 1 : -1;
+            }
+            if(currentTab === 'augments') {
+                // 默认顺序：白银 → 黄金 → 棱彩 → 特殊，同级内按名称
+                const tierDiff = (TIER_RANK[a.tier] ?? 9) - (TIER_RANK[b.tier] ?? 9);
+                if (tierDiff !== 0) return tierDiff;
+                return a.name.localeCompare(b.name, 'zh-Hans-CN');
+            }
+            if(currentTab === 'items') {
+                // 分类顺序：棱镜 → 神话/传说 → 鞋子 → 消耗品 → 其他，同类内按价格降序
+                const catDiff = (ITEM_CAT_RANK[a.cat] ?? 9) - (ITEM_CAT_RANK[b.cat] ?? 9);
+                if (catDiff !== 0) return catDiff;
+                if (b.price !== a.price) return b.price - a.price;
+                return a.name.localeCompare(b.name, 'zh-Hans-CN');
+            }
+            return a.name.localeCompare(b.name, 'zh-Hans-CN');
+        });
+
+        const frag = document.createDocumentFragment();
+        sortedData.forEach(item => frag.appendChild(buildCard(item)));
+        container.appendChild(frag);
+    }
+
+    function applyFilters(filterVal = currentFilter) {
+        currentFilter = filterVal;
+        const isFocusMode = document.getElementById('focusModeToggle').checked;
+        const completedSet = new Set(getCompleted());
+        let visibleCount = 0;
+
+        // 不依赖全局 event：通过 data-filter 同步按钮高亮
+        document.querySelectorAll(`#filter-bar-${currentTab} .filter-btn`).forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.filter === filterVal);
+        });
+
+        document.querySelectorAll(`#container-${currentTab} .data-card`).forEach(card => {
+            const itemId = card.dataset.id; const itemName = card.dataset.name; const itemDesc = card.dataset.desc || '';
+
+            if (currentTab === 'champions' && isFocusMode && completedSet.has(itemId)) { card.classList.remove('show'); return; }
+            if (currentTab === 'champions' && filterVal !== 'All' && card.dataset.role !== filterVal) { card.classList.remove('show'); return; }
+            if (currentTab === 'augments' && filterVal !== 'All' && card.dataset.tier !== filterVal) { card.classList.remove('show'); return; }
+            if (currentTab === 'items' && filterVal !== 'All' && card.dataset.cat !== filterVal) { card.classList.remove('show'); return; }
+
+            if (currentSearchKeyword) {
+                const aliases = (currentTab === 'champions' && CHAMPION_ALIAS[itemId]) ? CHAMPION_ALIAS[itemId] : [];
+                const searchLower = currentSearchKeyword;
+                const match = itemName.toLowerCase().includes(searchLower) || itemId.toLowerCase().includes(searchLower) ||
+                              itemDesc.toLowerCase().includes(searchLower) || aliases.some(a => a.toLowerCase().includes(searchLower));
+                if (!match) { card.classList.remove('show'); return; }
+            }
+            card.classList.add('show'); visibleCount++;
+        });
+        const emptyState = document.getElementById(`emptyState-${currentTab}`);
+        if (visibleCount === 0 && !emptyState.innerHTML) emptyState.innerHTML = '🔍 没有符合条件的结果';
+        emptyState.classList.toggle('show', visibleCount === 0);
+    }
+
+    // ---------- 吃鸡标记 ----------
+    async function toggleStatus(itemId, itemName) {
+        if(currentTab !== 'champions') return;
+        const completed = getCompleted();
+        const card = document.getElementById(`card-champions-${itemId}`);
+
+        if (completed.includes(itemId)) {
+            const confirmed = await showConfirmWithTimer('取消状态', `确定要将 【<span style="color:var(--accent)">${escapeHtml(itemName)}</span>】 移出吃鸡列表吗？`, false);
+            if (!confirmed) return;
+            removeWin(itemId);
+            card.classList.remove('completed');
+            showToast(`已取消【${escapeHtml(itemName)}】`);
+        } else {
+            addWin(itemId);
+            card.classList.add('completed');
+            if(typeof confetti !== 'undefined') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#d4af37', '#ffffff', '#e84057'] });
+            showToast(`🎉 恭喜！【${escapeHtml(itemName)}】已吃鸡！`);
+        }
+        updateStatsUI();
+        if(currentSortMode === 'uncompletedFirst') renderData();
+        applyFilters();
+    }
+
+    // ---------- 战绩统计面板 ----------
+    function openStatsModal() {
+        const records = getRecords();
+        const completedSet = new Set(records.map(r => r.id));
+        const champById = new Map(appData.champions.map(c => [c.id, c]));
+
+        // 职业进度条
+        const roleStats = {};
+        ROLE_ORDER.forEach(r => roleStats[r] = { total: 0, done: 0 });
+        appData.champions.forEach(c => {
+            const role = champRole(c);
+            roleStats[role].total++;
+            if (completedSet.has(c.id)) roleStats[role].done++;
+        });
+        let roleHtml = '';
+        ROLE_ORDER.forEach(r => {
+            const s = roleStats[r];
+            const pct = s.total ? (s.done / s.total * 100).toFixed(0) : 0;
+            roleHtml += `<div class="role-row">
+                <div class="role-name">${ROLE_FILTERS[r]}</div>
+                <div class="role-bar"><div class="role-bar-fill" style="width:${pct}%"></div></div>
+                <div class="role-count"><b>${s.done}</b> / ${s.total}</div>
+            </div>`;
+        });
+        document.getElementById('role-stats').innerHTML = roleHtml;
+
+        // 时间线（新→旧，无日期的早期记录沉底）
+        const sorted = [...records].sort((a, b) => (b.ts || 0) - (a.ts || 0));
+        let tlHtml = '';
+        if (sorted.length === 0) {
+            tlHtml = '<div class="tl-empty">还没有吃鸡记录，去开一把竞技场吧！🐔</div>';
+        } else {
+            sorted.forEach(r => {
+                const champ = champById.get(r.id);
+                const name = champ ? champ.name : r.id;
+                const imgTag = champ ? `<img src="${champ.img}" alt="" loading="lazy">` : '';
+                tlHtml += `<div class="tl-item">${imgTag}<div class="tl-name">${escapeHtml(name)}</div><div class="tl-date">${formatDate(r.ts)}</div></div>`;
+            });
+        }
+        document.getElementById('timeline-list').innerHTML = tlHtml;
+        document.getElementById('stats-modal').classList.add('show');
+    }
+    function closeStatsModal() { document.getElementById('stats-modal').classList.remove('show'); }
+
+    // ---------- 版本变动侦测 ----------
+    // 原理：每次加载后把"数据指纹"（每条海克斯/装备的 名称+描述 哈希）存入本地；
+    // 下次官方数据更新时与上次指纹对比，列出 新增/改动/移除 清单。
+    function djb2Hash(str) {
+        let h = 5381;
+        for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+        return h;
+    }
+
+    function detectDataChanges() {
+        // 仅在权威实时数据下运行（缓存回退数据不参与，避免误报）
+        if (!liveFlags.augs && !liveFlags.items) return;
+
+        const cur = { ver: globalVersion, augs: {}, items: {} };
+        if (liveFlags.augs) appData.augments.forEach(a => cur.augs[a.id] = { h: djb2Hash(a.name + '|' + a.desc), n: a.name });
+        if (liveFlags.items) appData.items.forEach(i => cur.items[i.id] = { h: djb2Hash(i.name + '|' + i.price + '|' + i.desc), n: i.name });
+
+        let prev = null;
+        try { prev = JSON.parse(localStorage.getItem(KEYS.snapshot)); } catch(e) {}
+        try { localStorage.setItem(KEYS.snapshot, JSON.stringify(cur)); } catch(e) {}
+        if (!prev || !prev.augs) return; // 首次运行：静默建档，不弹横幅
+
+        function diffMaps(oldMap, newMap) {
+            const added = [], changed = [], removed = [];
+            for (const id in newMap) {
+                if (!(id in oldMap)) added.push(newMap[id].n);
+                else if (oldMap[id].h !== newMap[id].h) changed.push(newMap[id].n);
+            }
+            for (const id in oldMap) if (!(id in newMap)) removed.push(oldMap[id].n);
+            return { added, changed, removed };
+        }
+        // 某一类数据本次未成功加载时跳过该类对比，避免"全部移除"误报
+        const empty = { added: [], changed: [], removed: [] };
+        const aDiff = liveFlags.augs && Object.keys(prev.augs || {}).length ? diffMaps(prev.augs, cur.augs) : empty;
+        const iDiff = liveFlags.items && Object.keys(prev.items || {}).length ? diffMaps(prev.items, cur.items) : empty;
+
+        const total = aDiff.added.length + aDiff.changed.length + aDiff.removed.length +
+                      iDiff.added.length + iDiff.changed.length + iDiff.removed.length;
+        const verChanged = prev.ver && prev.ver !== cur.ver;
+        if (total === 0 && !verChanged) return;
+
+        showChangesBanner(prev.ver, cur.ver, aDiff, iDiff, total, verChanged);
+    }
+
+    function showChangesBanner(oldVer, newVer, aDiff, iDiff, total, verChanged) {
+        const parts = [];
+        if (verChanged) parts.push(`版本 <b>${escapeHtml(oldVer)}</b> → <b>${escapeHtml(newVer)}</b>`);
+        const augCount = aDiff.added.length + aDiff.changed.length + aDiff.removed.length;
+        const itemCount = iDiff.added.length + iDiff.changed.length + iDiff.removed.length;
+        if (augCount) parts.push(`海克斯变动 <b>${augCount}</b> 条`);
+        if (itemCount) parts.push(`装备变动 <b>${itemCount}</b> 件`);
+        if (parts.length === 0) return;
+
+        document.getElementById('changes-banner-text').innerHTML = '🆕 侦测到官方数据更新：' + parts.join(' · ');
+        document.getElementById('changes-banner').classList.add('show');
+
+        // 组装详情模态框内容
+        function section(title, diff) {
+            const block = (cls, label, names) => names.length
+                ? `<div class="chg-group-title ${cls}">${label}（${names.length}）</div><div class="chg-names">${names.map(escapeHtml).join('、')}</div>`
+                : '';
+            const html = block('added', '✚ 新增', diff.added) + block('changed', '✎ 改动', diff.changed) + block('removed', '✖ 移除', diff.removed);
+            return html ? `<div class="stats-section-title mt">${title}</div>` + html : '';
+        }
+        let body = '';
+        if (verChanged) body += `<div class="stats-section-title">🎮 游戏版本：${escapeHtml(oldVer)} → ${escapeHtml(newVer)}</div>`;
+        body += section('🔮 海克斯', aDiff) + section('⚔️ 装备', iDiff);
+        if (!body) body = '<div class="tl-empty">本次仅版本号变化，内容无差异</div>';
+        document.getElementById('changes-modal-body').innerHTML = body;
+    }
+
+    // ---------- 二维码进度迁移 ----------
+    // 编码：记录压缩为紧凑文本（英雄ID[:分钟级base36时间戳]逗号分隔）→ LZ 压缩 → 二维码
+    // 托管环境下二维码内容是带 #agt= 的本页链接（扫码即开即导入）；
+    // 本地 file:// 环境下二维码内容是纯迁移码（扫码复制→另一台粘贴导入）
+    const MIGRATE_PREFIX = 'AGT1:';
+
+    function encodeMigrationCode() {
+        const records = getRecords();
+        if (!records.length || typeof LZString === 'undefined') return null;
+        const payload = records.map(r => r.ts ? `${r.id}:${Math.floor(r.ts / 60000).toString(36)}` : r.id).join(',');
+        return LZString.compressToEncodedURIComponent(payload);
+    }
+
+    function decodeMigrationCode(input) {
+        let s = (input || '').trim();
+        const hashIdx = s.indexOf('#agt=');
+        if (hashIdx > -1) s = s.slice(hashIdx + 5);
+        if (s.startsWith(MIGRATE_PREFIX)) s = s.slice(MIGRATE_PREFIX.length);
+        if (!s || typeof LZString === 'undefined') return null;
+        let payload = null;
+        try { payload = LZString.decompressFromEncodedURIComponent(s); } catch(e) {}
+        if (!payload) return null;
+        const records = [];
+        payload.split(',').forEach(tok => {
+            const [id, ts36] = tok.split(':');
+            if (!/^[A-Za-z]{2,30}$/.test(id || '')) return; // 防注入：ID 仅允许字母
+            const ts = ts36 ? parseInt(ts36, 36) * 60000 : null;
+            records.push({ id, ts: Number.isFinite(ts) && ts > 0 ? ts : null });
+        });
+        return records.length ? records : null;
+    }
+
+    // 合并策略：并集；已有记录保留，仅用来源数据补全缺失的吃鸡日期
+    function mergeRecords(incoming) {
+        const current = getRecords();
+        const byId = new Map(current.map(r => [r.id, r]));
+        let addedCount = 0;
+        incoming.forEach(r => {
+            const exist = byId.get(r.id);
+            if (!exist) { byId.set(r.id, { id: r.id, ts: r.ts }); addedCount++; }
+            else if (!exist.ts && r.ts) exist.ts = r.ts;
+        });
+        saveRecords([...byId.values()]);
+        return addedCount;
+    }
+
+    function openMigrateModal() {
+        const qrBox = document.getElementById('qr-box');
+        const tip = document.getElementById('qr-tip');
+        const codeArea = document.getElementById('migrate-code');
+        const records = getRecords();
+        qrBox.innerHTML = ''; tip.textContent = ''; codeArea.value = '';
+        document.getElementById('migrate-input').value = '';
+
+        if (!records.length) {
+            qrBox.innerHTML = '<div class="tl-empty">暂无进度记录可迁移，先去吃一鸡！🐔</div>';
+        } else if (typeof qrcode === 'undefined' || typeof LZString === 'undefined') {
+            qrBox.innerHTML = '<div class="tl-empty">二维码组件加载失败（首次需联网），请联网刷新后重试</div>';
+        } else {
+            const data = encodeMigrationCode();
+            const isHosted = /^https?:$/.test(location.protocol);
+            const qrContent = isHosted ? `${location.origin}${location.pathname}#agt=${data}` : MIGRATE_PREFIX + data;
+            codeArea.value = MIGRATE_PREFIX + data;
+
+            // M 级纠错优先；数据偏大时降级 L 以提高容量
+            let svg = null;
+            for (const ecc of ['M', 'L']) {
+                try {
+                    const qr = qrcode(0, ecc);
+                    qr.addData(qrContent);
+                    qr.make();
+                    svg = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+                    break;
+                } catch(e) { /* 容量溢出，尝试下一档 */ }
+            }
+            if (svg) {
+                qrBox.innerHTML = `<div class="qr-wrap">${svg}</div>`;
+                tip.innerHTML = isHosted
+                    ? `共 <b>${records.length}</b> 条记录 · 用另一台设备的相机扫码，打开页面后自动提示导入`
+                    : `共 <b>${records.length}</b> 条记录 · 扫码后复制内容，粘贴到另一台设备的下方导入框`;
+            } else {
+                qrBox.innerHTML = '<div class="tl-empty">进度数据太多，二维码装不下了 😅<br>请复制下方迁移码手动传输，或改用「💾 导出」文件迁移</div>';
+            }
+        }
+        document.getElementById('migrate-modal').classList.add('show');
+    }
+
+    function importMigrationCode(text) {
+        const recs = decodeMigrationCode(text);
+        if (!recs) { showToast('⚠️ 迁移码无效或已损坏'); return; }
+        const added = mergeRecords(recs);
+        renderData(); updateStatsUI(); applyFilters();
+        document.getElementById('migrate-modal').classList.remove('show');
+        showToast(`📲 迁移完成：合并 ${recs.length} 条记录，新增 ${added} 个英雄`);
+        if (added > 0 && typeof confetti !== 'undefined') confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    }
+
+    // 扫码打开链接时的自动导入（仅托管环境会走到这里）
+    async function checkHashImport() {
+        if (!location.hash.startsWith('#agt=')) return;
+        const recs = decodeMigrationCode(location.hash);
+        history.replaceState(null, '', location.pathname + location.search); // 立即清掉哈希，避免刷新重复触发
+        if (!recs) { showToast('⚠️ 链接中的迁移数据无效'); return; }
+        const ok = await showConfirmWithTimer('📲 发现迁移数据',
+            `检测到来自其他设备的 <b style="color:var(--gold)">${recs.length}</b> 条吃鸡记录。<br>确定合并到当前进度吗？（不会删除现有记录）`, false);
+        if (ok) {
+            const added = mergeRecords(recs);
+            renderData(); updateStatsUI(); applyFilters();
+            showToast(`📲 迁移完成：新增 ${added} 个英雄记录`);
+            if (added > 0 && typeof confetti !== 'undefined') confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+        }
+    }
+
+    // ---------- 塔罗抽卡（跟随当前职业筛选）----------
+    function pickRandomChampion() {
+        if(currentTab !== 'champions') return;
+        const completedSet = new Set(getCompleted());
+        let pool = appData.champions.filter(c => !completedSet.has(c.id));
+
+        // 按当前职业筛选缩小抽卡池（如选中"法师"则只抽未吃鸡的法师）
+        const roleLabel = currentFilter !== 'All' ? ROLE_FILTERS[currentFilter] : null;
+        if (currentFilter !== 'All') pool = pool.filter(c => champRole(c) === currentFilter);
+
+        if (pool.length === 0) {
+            showToast(roleLabel ? `🏆 ${roleLabel}已全部吃鸡，换个职业试试！` : '🏆 太强了！英雄池已清空！');
+            return;
+        }
+
+        const picked = pool[Math.floor(Math.random() * pool.length)];
+        tarotPickedIds = [picked.id];
+
+        // 构建卡牌 UI（使用官方加载页高清立绘 308×560，远比方形小头像清晰且比例契合卡面）
+        const hiResArt = `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${encodeURIComponent(picked.id)}_0.jpg`;
+        const row = document.getElementById('tarot-cards-row');
+        const hint = document.getElementById('tarot-hint');
+        row.innerHTML = '';
+        const unit = document.createElement('div');
+        unit.className = 'tarot-unit';
+        unit.innerHTML = `
+            <div class="tarot-card-container tarot-drop">
+                <div class="tarot-card-inner">
+                    <div class="tarot-face tarot-front"><div class="tarot-front-inner">?</div></div>
+                    <div class="tarot-face tarot-back">
+                        <img src="${hiResArt}" alt="${escapeHtml(picked.name)}">
+                        <div class="name">${escapeHtml(picked.name)}</div>
+                    </div>
+                </div>
+            </div>`;
+        row.appendChild(unit);
+        // 高清立绘加载失败时回退为方形头像
+        const backImg = unit.querySelector('.tarot-back img');
+        backImg.addEventListener('error', function onErr() {
+            backImg.removeEventListener('error', onErr);
+            backImg.src = picked.img;
+        });
+
+        hint.classList.remove('show');
+        hint.textContent = (roleLabel ? `【${roleLabel}】限定 · ` : '') + '点击任意空白处前往英雄';
+        tarotCanClose = false;
+        document.getElementById('tarot-modal').classList.add('show');
+
+        // 悬念停顿后 3D 翻转
+        const inner = row.querySelector('.tarot-card-inner');
+        setTimeout(() => {
+            inner.classList.add('flipped');
+            if(typeof confetti !== 'undefined') {
+                confetti({ particleCount: 180, spread: 110, origin: { y: 0.5 }, colors: ['#d4af37', '#e84057', '#ffffff'], zIndex: 10010 });
+            }
+            setTimeout(() => { tarotCanClose = true; hint.classList.add('show'); }, 800);
+        }, 600);
+    }
+
+    function closeTarotModal() {
+        if(!tarotCanClose) return;
+        document.getElementById('tarot-modal').classList.remove('show');
+
+        // 保留当前职业筛选与专注模式（抽出的英雄必然属于当前筛选且未吃鸡，一定可见）
+        // 仅清空搜索关键词，避免关键词把目标卡片挡住
+        document.getElementById('globalSearch').value = ''; currentSearchKeyword = '';
+        applyFilters(currentFilter);
+        document.querySelectorAll('.data-card').forEach(c => c.classList.remove('random-highlight'));
+
+        setTimeout(() => {
+            const id = tarotPickedIds[0];
+            const card = id ? document.getElementById(`card-champions-${id}`) : null;
+            if (card) {
+                card.classList.add('random-highlight');
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                showToast(`🎲 天命降临：这把就玩【${escapeHtml(card.dataset.name)}】！`);
+                setTimeout(() => card.classList.remove('random-highlight'), 5000);
+            }
+        }, 150);
+    }
+
+    // ---------- 海报 ----------
+    async function generatePoster() {
+        showToast('📸 正在绘制高清海报，请保持页面停留...');
+        const exportZone = document.getElementById('export-zone'); const toolbar = document.getElementById('control-toolbar');
+        toolbar.style.display = 'none';
+        try {
+            const bg = getComputedStyle(document.body).getPropertyValue('--bg-color').trim() || '#0b0e13';
+            const canvas = await html2canvas(exportZone, { useCORS: true, backgroundColor: bg, scale: 1.5 });
+            const link = document.createElement('a'); link.download = `Arena_God_Poster_${new Date().getTime()}.png`;
+            link.href = canvas.toDataURL('image/png'); link.click(); showToast('✅ 专属图鉴海报生成成功！');
+        } catch(e) { showToast('❌ 海报生成失败，请检查网络'); } finally { toolbar.style.display = 'block'; }
+    }
+
+    // ---------- 悬浮提示 ----------
+    const tooltip = document.getElementById('tooltip');
+    async function showContextTooltip(event, itemId, itemName) {
+        tooltip.style.display = 'block';
+        tooltip.innerHTML = `<div class="tooltip-title">${escapeHtml(itemName)}</div><div class="loading-text">加载中...</div>`;
+        moveTooltip(event);
+
+        if (currentTab === 'champions') {
+            if (!skillCache[itemId]) {
+                try {
+                    const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/${globalVersion}/data/zh_CN/champion/${itemId}.json`);
+                    const data = await res.json(); const cData = data.data[itemId];
+                    skillCache[itemId] = {
+                        passive: { name: cData.passive.name, desc: cData.passive.description, img: `https://ddragon.leagueoflegends.com/cdn/${globalVersion}/img/passive/${cData.passive.image.full}` },
+                        spells: cData.spells.map(s => ({ name: s.name, desc: s.description, img: `https://ddragon.leagueoflegends.com/cdn/${globalVersion}/img/spell/${s.image.full}` }))
+                    };
+                } catch (e) { tooltip.innerHTML = `<div class="tooltip-title">${escapeHtml(itemName)}</div><div>拉取失败</div>`; return; }
+            }
+            if (hoverCardEl && hoverCardEl.dataset.id !== itemId) return; // 鼠标已移走，放弃过期渲染
+            const sk = skillCache[itemId]; let html = `<div class="tooltip-title">${escapeHtml(itemName)}</div>`;
+            html += `<div class="skill-row"><img class="skill-icon" src="${sk.passive.img}" alt="被动"><div class="skill-content"><b>被动: ${escapeHtml(sk.passive.name)}</b><br><span class="tooltip-desc">${sk.passive.desc}</span></div></div>`;
+            const keys = ['Q', 'W', 'E', 'R'];
+            sk.spells.forEach((sp, idx) => { html += `<div class="skill-row"><img class="skill-icon" src="${sp.img}" alt="${keys[idx]}"><div class="skill-content"><b>${keys[idx]}: ${escapeHtml(sp.name)}</b><br><span class="tooltip-desc">${sp.desc}</span></div></div>`; });
+            tooltip.innerHTML = html;
+        }
+        else if (currentTab === 'augments') {
+            const aug = appData.augments.find(a => a.id === itemId);
+            if (!aug) return;
+            const tierColor = aug.tier === 'Prismatic' ? 'var(--prismatic)' : aug.tier === 'Gold' ? 'var(--gold)' : aug.tier === 'Special' ? 'var(--special)' : 'var(--silver)';
+            tooltip.innerHTML = `<div class="tooltip-title" style="color: ${tierColor}">${escapeHtml(itemName)} (${TIER_LABEL[aug.tier] || aug.tier})</div><div class="tooltip-desc">${aug.rawDesc || escapeHtml(aug.desc)}</div>`;
+        }
+        else if (currentTab === 'items') {
+            const itm = appData.items.find(i => i.id === itemId);
+            if (!itm) return;
+            const catLabel = ITEM_CAT_LABEL[itm.cat] || '装备';
+            const priceLine = itm.price > 0 ? `💰 ${itm.price} 金币` : '✨ 竞技场专属 · 不可购买';
+            tooltip.innerHTML = `<div class="tooltip-title">${escapeHtml(itemName)} <span style="font-size:0.8rem;color:var(--text-muted);font-weight:normal;">(${catLabel})</span></div><div class="tooltip-desc">${itm.rawDesc || escapeHtml(itm.desc)}</div><div class="tooltip-stat">${priceLine}</div>`;
+        }
+        moveTooltip(event);
+    }
+
+    function moveTooltip(event) {
+        const tw = tooltip.offsetWidth; const th = tooltip.offsetHeight;
+        let x = event.pageX + 15; let y = event.pageY + 15;
+        if (x + tw > window.innerWidth + window.scrollX) x = event.pageX - tw - 15;
+        if (x < window.scrollX + 10) x = window.scrollX + 10;
+        const maxY = window.scrollY + window.innerHeight - th - 15; const minY = window.scrollY + 15;
+        if (y > maxY) y = maxY; if (y < minY) y = minY;
+        tooltip.style.left = x + 'px'; tooltip.style.top = y + 'px';
+    }
+    function hideTooltip() { tooltip.style.display = 'none'; }
+
+    // ---------- Toast 与确认框 ----------
+    function showToast(message) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div'); toast.className = 'toast'; toast.innerHTML = message;
+        container.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 2500);
+    }
+
+    function showConfirmWithTimer(title, messageHtml, useTimer = false) {
+        return new Promise((resolve) => {
+            const overlay = document.getElementById('custom-modal');
+            document.getElementById('modal-title').innerHTML = title;
+            document.getElementById('modal-message').innerHTML = messageHtml;
+
+            const confirmBtn = document.getElementById('modal-confirm');
+            const timerContainer = document.getElementById('modal-timer-container');
+            const timerText = document.getElementById('modal-timer-text');
+            const timerProgress = document.getElementById('modal-timer-progress');
+
+            let timerInterval; let currentTimeout;
+
+            if (useTimer) {
+                let timeLeft = 3;
+                confirmBtn.disabled = true;
+                timerContainer.style.display = 'block';
+                timerText.innerText = timeLeft;
+                timerProgress.style.transition = 'none';
+                timerProgress.style.strokeDashoffset = '0';
+                timerProgress.getBoundingClientRect();
+                currentTimeout = setTimeout(() => {
+                    timerProgress.style.transition = 'stroke-dashoffset 3s linear';
+                    timerProgress.style.strokeDashoffset = '163.36';
+                }, 10);
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    timerText.innerText = timeLeft > 0 ? timeLeft : 0;
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        confirmBtn.disabled = false;
+                        timerContainer.style.display = 'none';
+                    }
+                }, 1000);
+            } else {
+                confirmBtn.disabled = false;
+                timerContainer.style.display = 'none';
+            }
+
+            overlay.classList.add('show');
+
+            const cleanup = () => {
+                overlay.classList.remove('show');
+                document.removeEventListener('keydown', keyHandler);
+                if(timerInterval) clearInterval(timerInterval);
+                if(currentTimeout) clearTimeout(currentTimeout);
+            };
+            const confirmAction = () => { if(!confirmBtn.disabled) { cleanup(); resolve(true); } };
+            const cancelAction = () => { cleanup(); resolve(false); };
+            const keyHandler = (e) => {
+                if (e.key === 'Enter') confirmAction();
+                if (e.key === 'Escape') cancelAction();
+            };
+            document.addEventListener('keydown', keyHandler);
+            confirmBtn.onclick = confirmAction;
+            document.getElementById('modal-cancel').onclick = cancelAction;
+        });
+    }
+
+    // ---------- 导入 / 导出 / 重置 ----------
+    function exportData(){
+        const data = {
+            version: 10.2,
+            exportTime: new Date().toISOString(),
+            champions: getCompleted(),   // 兼容旧格式
+            records: getRecords()        // 新格式：含吃鸡日期
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'Arena_God_Ultimate_Backup.json';
+        a.click(); URL.revokeObjectURL(url); showToast('💾 战绩进度已导出（含吃鸡日期）');
+    }
+
+    function handleImportFile(e) {
+        const file = e.target.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = evt => {
+            try {
+                const json = JSON.parse(evt.target.result);
+                if (Array.isArray(json.records)) {
+                    saveRecords(json.records.filter(r => r && r.id));
+                } else if (Array.isArray(json.champions)) {
+                    saveRecords(json.champions.map(id => ({ id, ts: null })));
+                } else if (Array.isArray(json.completed)) {
+                    saveRecords(json.completed.map(id => ({ id, ts: null })));
+                } else { throw new Error('format'); }
+                renderData(); updateStatsUI(); applyFilters(); showToast('📂 战绩进度导入成功！');
+            } catch { showToast('⚠️ 导入失败：文件格式不正确'); }
+        };
+        reader.readAsText(file); e.target.value = '';
+    }
+
+    async function resetData() {
+        if(currentTab !== 'champions') return;
+        const confirmed = await showConfirmWithTimer('⚠️ 危险操作', '确定要<span style="color:var(--danger)">清空所有英雄的吃鸡记录与时间线</span>吗？', true);
+        if (confirmed) { saveRecords([]); renderData(); updateStatsUI(); applyFilters(); showToast('🗑️ 战绩记录已清空'); }
+    }
+
+    window.onload = init;
+</script>
+
+<div style="margin-top: 50px; padding: 20px; border-top: 1px solid var(--border-dark); color: var(--text-muted); font-size: 0.9rem; text-align: center;">
+    <h3>关于 Arena God Tracker</h3>
+    <p style="max-width: 800px; margin: 0 auto 10px auto; line-height: 1.6;">本工具专为《英雄联盟》斗魂竞技场玩家打造。海克斯图鉴与装备百科<strong>实时同步官方最新版本数据</strong>，吃鸡记录自动带日期并可在统计面板查看时间线与各职业完成度。支持塔罗抽卡（跟随职业筛选）、浅色/暗色主题切换，进度永久保存在本地。</p>
+    <p><i>本工具数据解析自 Riot Games 游戏公开包（经由 CommunityDragon 镜像），不隶属于 Riot Games 官方。第三方攻略链接归属 Op.gg / Blitz.gg 所有。</i></p>
+    <p style="margin-top: 15px; font-weight: bold; color: var(--gold-light);">Build: Ultimate V10.2 | 海克斯数据每 24 小时自动刷新</p>
+</div>
+
+</body>
+</html>
