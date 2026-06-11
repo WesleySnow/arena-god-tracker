@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="英雄联盟斗魂竞技场吃鸡进度追踪器：全英雄收集进度、海克斯图鉴、装备百科、塔罗抽卡与战绩时间线。数据实时同步官方版本。">
     <meta name="theme-color" content="#0b0e13">
-    <title>Arena God Tracker - Ultimate V10.8</title>
+    <title>Arena God Tracker - Ultimate V10.9</title>
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏆</text></svg>">
     <link rel="manifest" href="manifest.webmanifest">
@@ -284,6 +284,15 @@
         /* ==========================================================================
            6. 战绩统计模态框（职业进度 + 吃鸡时间线）
            ========================================================================== */
+        .player-id-row { margin-bottom: 10px; }
+        .player-id-wrap { position: relative; display: inline-flex; align-items: center; }
+        #player-id { background: var(--bg-input); border: 1px solid var(--border-dark); border-radius: 18px; color: var(--gold-light); padding: 7px 30px 7px 16px; font-size: 0.92rem; font-weight: 700; text-align: center; outline: none; width: 230px; max-width: 80vw; transition: border-color 0.2s; }
+        #player-id:focus { border-color: var(--gold); }
+        #player-id::placeholder { color: var(--text-muted); font-weight: 400; font-size: 0.82rem; }
+        #player-id-clear { position: absolute; right: 11px; cursor: pointer; color: var(--text-muted); font-size: 0.82rem; display: none; padding: 2px; }
+        #player-id-clear:hover { color: var(--accent); }
+        .player-id-wrap.has-value #player-id-clear { display: block; }
+        .stats-player { text-align: center; color: var(--gold-light); font-weight: 800; font-size: 1.05rem; margin-bottom: 14px; letter-spacing: 0.5px; }
         .stats-modal-box { width: min(480px, 92vw); }
         .stats-modal-body { text-align: left; max-height: 70vh; overflow-y: auto; padding: 20px; }
         .stats-section-title { font-size: 0.95rem; font-weight: 800; color: var(--gold); margin: 0 0 12px 0; letter-spacing: 1px; }
@@ -356,8 +365,10 @@
             #container-champions .links-container { display: none; }
             .tool-btn.icon-btn { flex: 0 0 auto; }
             .toolbar-bottom { flex-direction: column; align-items: stretch; gap: 10px; }
-            .filter-bar { justify-content: center; }
-            .filter-btn { padding: 6px 12px; font-size: 0.85rem; }
+            /* 筛选按钮等宽网格：4列整齐排布，不再长短不一 */
+            .filter-bar { display: grid !important; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+            .filter-bar[style*="display: none"] { display: none !important; }
+            .filter-btn { padding: 7px 2px; font-size: 0.8rem; text-align: center; border-radius: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
             #data-management-group { justify-content: center; width: 100%; flex-wrap: wrap; gap: 10px;}
             /* 列表视图：保持横排（头像在左、名字在右），双列紧凑布局 */
             .data-container.view-list { grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -386,6 +397,12 @@
 <div id="export-zone">
     <div class="header">
         <h1>🏆 Arena God Tracker</h1>
+        <div class="player-id-row">
+            <div class="player-id-wrap" id="player-id-wrap">
+                <input id="player-id" maxlength="40" autocomplete="off" spellcheck="false" data-i18n-ph="playerPh" placeholder="">
+                <span id="player-id-clear" title="✕">✕</span>
+            </div>
+        </div>
         <div class="stats-box" id="stats-box-display">
             <span data-i18n="progressLabel">收集进度:</span> <strong id="statsDisplayNum">0</strong> / <span id="statsTotalNum">0</span>
         </div>
@@ -518,10 +535,14 @@
     <div class="modal-box stats-modal-box">
         <div class="modal-header"><span data-i18n="statsTitle">📊 战绩统计</span> <span class="modal-close-x" id="stats-close">✕</span></div>
         <div class="stats-modal-body">
+            <div class="stats-player" id="stats-player" style="display:none;"></div>
             <div class="stats-section-title" data-i18n="roleProgress">⚔️ 职业进度</div>
             <div id="role-stats"></div>
             <div class="stats-section-title mt" data-i18n="timelineTitle">🕑 吃鸡时间线</div>
             <div class="timeline-list" id="timeline-list"></div>
+            <div style="display:flex;justify-content:center;margin-top:18px;">
+                <button class="tool-btn" id="btn-stats-export" data-i18n="btnStatsExport">📸 保存为图片</button>
+            </div>
         </div>
     </div>
 </div>
@@ -570,8 +591,15 @@
 
 <script>
     // ==========================================================================
-    // Arena God Tracker V10.8 — 实时数据 + 主题系统 + 战绩记录引擎
+    // Arena God Tracker V10.9 — 实时数据 + 主题系统 + 战绩记录引擎
     //
+    // V10.9 变更摘要：
+    //  [移动] 筛选按钮改为 4 列等宽网格，"辅助"不再孤零零占一行
+    //  [功能] 排序三档循环：🔄 默认 → ⬆️ 置顶（已吃鸡在前，方便做海报）→ ⬇️ 沉底
+    //  [功能] 🎮 游戏ID输入框（进度条上方）：本地缓存、×一键清除、随"清空"一并清除；
+    //         显示在海报与统计面板中（玩家名称#标签）
+    //  [功能] 统计面板新增"📸 保存为图片"：完整时间线展开捕获，手机长按保存/电脑下载
+    //  [界面] 海报按钮仅英雄页显示（海克斯/装备页无意义）
     // V10.8 变更摘要（海报专项）：
     //  [修复] 海报偶发失败：根因是 html2canvas 需重新下载全部头像导致超时。
     //         现在先用浏览器原生方式预载图片（带真实进度），html2canvas 直接
@@ -633,7 +661,7 @@
         tabChampions:'🦸‍♂️ 英雄天命', tabAugments:'🔮 海克斯图鉴', tabItems:'⚔️ 装备百科',
         searchPh:'搜英雄 / 装备属性(如:护甲,吸血) / 拼音...',
         btnPoster:'📸 海报', btnRandom:'🎲 抽卡', btnTier:'📈 胜率',
-        btnSortDefault:'🔄 默认', btnSortSink:'⬇️ 沉底', btnViewList:'📝 列表', btnViewGrid:'🔲 网格',
+        btnSortDefault:'🔄 默认', btnSortTop:'⬆️ 置顶', btnSortSink:'⬇️ 沉底', btnViewList:'📝 列表', btnViewGrid:'🔲 网格',
         btnStats:'📊 统计', btnMigrate:'📱 迁移', btnExport:'💾 导出', btnImport:'📂 导入', btnReset:'🗑️ 清空',
         focusMode:'专注模式', progressLabel:'收集进度:',
         titlePoster:'生成当前页面的精美海报', titleRandom:'随机挑选一个未吃鸡的英雄（跟随当前职业筛选）',
@@ -641,6 +669,7 @@
         filterAllLevels:'全部级别', tierPrismatic:'棱彩 (Prismatic)', tierGold:'黄金 (Gold)', tierSilver:'白银 (Silver)', tierSpecial:'特殊 (Special)',
         catAll:'全部装备', catPrismatic:'棱镜装备', catLegendary:'神话/传说', catBoots:'鞋子', catConsumable:'消耗品', catOther:'其他',
         statsTitle:'📊 战绩统计', roleProgress:'⚔️ 职业进度', timelineTitle:'🕑 吃鸡时间线',
+        btnStatsExport:'📸 保存为图片', playerPh:'🎮 游戏ID（如 名称#JP1）',
         timelineEmpty:'还没有吃鸡记录，去开一把竞技场吧！🐔', earlyRecord:'早期记录',
         migrateTitle:'📱 进度迁移', migrateStep1:'① 在这台设备生成', migrateStep2:'② 在另一台设备导入',
         migrateCopy:'📋 复制迁移码', migrateImport:'📲 导入并合并',
@@ -665,7 +694,7 @@
         confirmWinTitle:'🏆 确认吃鸡', confirmWinMsg:'将 【<span style="color:var(--gold)">{name}</span>】 标记为已吃鸡？',
         toastWin:'🎉 恭喜！【{name}】已吃鸡！', toastUnmark:'已取消【{name}】',
         guideOpgg:'📖 OP.GG 攻略', guideLola:'📊 胜率·出装', guideBlitz:'⚡ Blitz 攻略', guideNote:'查看该英雄的海克斯 / 出装 / 加点推荐与实时胜率',
-        resetTitle:'⚠️ 危险操作', resetMsg:'确定要<span style="color:var(--danger)">清空所有英雄的吃鸡记录与时间线</span>吗？', toastReset:'🗑️ 战绩记录已清空',
+        resetTitle:'⚠️ 危险操作', resetMsg:'确定要<span style="color:var(--danger)">清空所有吃鸡记录、时间线与游戏ID</span>吗？', toastReset:'🗑️ 战绩记录已清空',
         toastExported:'💾 战绩进度已导出（含吃鸡日期）', toastImported:'📂 战绩进度导入成功！', toastImportBad:'⚠️ 导入失败：文件格式不正确',
         tarotHint:'点击任意空白处前往英雄', tarotRolePrefix:'【{role}】限定 · ',
         toastAllDone:'🏆 太强了！英雄池已清空！', toastRoleDone:'🏆 {role}已全部吃鸡，换个职业试试！', toastTarot:'🎲 天命降临：这把就玩【{name}】！',
@@ -684,7 +713,7 @@
         tabChampions:'🦸‍♂️ Champions', tabAugments:'🔮 Augments', tabItems:'⚔️ Items',
         searchPh:'Search champions / item stats / aliases...',
         btnPoster:'📸 Poster', btnRandom:'🎲 Draw', btnTier:'📈 Tiers',
-        btnSortDefault:'🔄 Default', btnSortSink:'⬇️ Done last', btnViewList:'📝 List', btnViewGrid:'🔲 Grid',
+        btnSortDefault:'🔄 Default', btnSortTop:'⬆️ Won first', btnSortSink:'⬇️ Done last', btnViewList:'📝 List', btnViewGrid:'🔲 Grid',
         btnStats:'📊 Stats', btnMigrate:'📱 Transfer', btnExport:'💾 Export', btnImport:'📂 Import', btnReset:'🗑️ Reset',
         focusMode:'Focus mode', progressLabel:'Progress:',
         titlePoster:'Generate a poster of this page', titleRandom:'Randomly pick an unwon champion (respects role filter)',
@@ -692,6 +721,7 @@
         filterAllLevels:'All tiers', tierPrismatic:'Prismatic', tierGold:'Gold', tierSilver:'Silver', tierSpecial:'Special',
         catAll:'All items', catPrismatic:'Prismatic', catLegendary:'Legendary', catBoots:'Boots', catConsumable:'Consumables', catOther:'Other',
         statsTitle:'📊 Statistics', roleProgress:'⚔️ Progress by role', timelineTitle:'🕑 Win timeline',
+        btnStatsExport:'📸 Save as image', playerPh:'🎮 Player ID (e.g. Name#TAG)',
         timelineEmpty:'No wins recorded yet — go play a round! 🐔', earlyRecord:'Earlier record',
         migrateTitle:'📱 Transfer progress', migrateStep1:'① Generate on this device', migrateStep2:'② Import on the other device',
         migrateCopy:'📋 Copy code', migrateImport:'📲 Import & merge',
@@ -716,7 +746,7 @@
         confirmWinTitle:'🏆 Confirm win', confirmWinMsg:'Mark <span style="color:var(--gold)">{name}</span> as won?',
         toastWin:'🎉 GG! {name} marked as won!', toastUnmark:'Unmarked {name}',
         guideOpgg:'📖 OP.GG Guide', guideLola:'📊 Stats & Builds', guideBlitz:'⚡ Blitz Guide', guideNote:'Augment / build / skill-order picks & live win rates',
-        resetTitle:'⚠️ Danger zone', resetMsg:'Really <span style="color:var(--danger)">wipe ALL win records and the timeline</span>?', toastReset:'🗑️ All records cleared',
+        resetTitle:'⚠️ Danger zone', resetMsg:'Really <span style="color:var(--danger)">wipe ALL win records, the timeline and player ID</span>?', toastReset:'🗑️ All records cleared',
         toastExported:'💾 Progress exported (with win dates)', toastImported:'📂 Progress imported!', toastImportBad:'⚠️ Import failed: bad file format',
         tarotHint:'Tap anywhere to jump to the champion', tarotRolePrefix:'{role} only · ',
         toastAllDone:'🏆 Incredible! Champion pool cleared!', toastRoleDone:'🏆 All {role} champions done — try another role!', toastTarot:'🎲 Destiny: play {name} this game!',
@@ -743,6 +773,7 @@
         records: 'arena_win_records_v1',      // 新版进度：[{id, ts}]，ts 为吃鸡时间戳（旧数据迁移后为 null）
         theme: 'arena_theme',
         prefs: 'arena_ui_prefs',              // 界面偏好：{ view, sort }
+        player: 'arena_player_id',            // 游戏ID（名称#标签），显示于头部/海报/统计
         snapshot: 'arena_data_snapshot_v1_' + LANG    // 版本变动侦测：上次见到的数据指纹
     };
     const CACHE_PREFIX = 'arena_cache_';
@@ -795,9 +826,9 @@
                     c.classList.remove('view-grid'); c.classList.add('view-list');
                 });
             }
-            if (p.sort === 'uncompletedFirst') {
-                currentSortMode = 'uncompletedFirst';
-                document.getElementById('btn-sort').innerHTML = t('btnSortSink');
+            if (p.sort === 'uncompletedFirst' || p.sort === 'completedFirst') {
+                currentSortMode = p.sort;
+                document.getElementById('btn-sort').innerHTML = t(p.sort === 'completedFirst' ? 'btnSortTop' : 'btnSortSink');
             }
         } catch(e) {}
     }
@@ -1364,6 +1395,26 @@
             });
         });
 
+        // 游戏ID：输入即存，× 清除
+        const playerInput = document.getElementById('player-id');
+        const playerWrap = document.getElementById('player-id-wrap');
+        playerInput.value = (localStorage.getItem(KEYS.player) || '');
+        playerWrap.classList.toggle('has-value', !!playerInput.value.trim());
+        playerInput.addEventListener('input', () => {
+            const v = playerInput.value.trim();
+            try { v ? localStorage.setItem(KEYS.player, v) : localStorage.removeItem(KEYS.player); } catch(e) {}
+            playerWrap.classList.toggle('has-value', !!v);
+        });
+        document.getElementById('player-id-clear').addEventListener('click', () => {
+            playerInput.value = '';
+            try { localStorage.removeItem(KEYS.player); } catch(e) {}
+            playerWrap.classList.remove('has-value');
+            playerInput.focus();
+        });
+
+        // 统计面板导出为图片
+        document.getElementById('btn-stats-export').addEventListener('click', exportStatsImage);
+
         // 工具按钮
         document.getElementById('btn-theme').addEventListener('click', toggleTheme);
         document.getElementById('btn-poster').addEventListener('click', generatePoster);
@@ -1569,13 +1620,14 @@
         document.getElementById(`tab-${tab}`).classList.add('active');
 
         const isChamp = tab === 'champions';
-        document.getElementById('filter-bar-champions').style.display = isChamp ? 'flex' : 'none';
-        document.getElementById('filter-bar-augments').style.display = tab === 'augments' ? 'flex' : 'none';
-        document.getElementById('filter-bar-items').style.display = tab === 'items' ? 'flex' : 'none';
+        document.getElementById('filter-bar-champions').style.display = isChamp ? '' : 'none';
+        document.getElementById('filter-bar-augments').style.display = tab === 'augments' ? '' : 'none';
+        document.getElementById('filter-bar-items').style.display = tab === 'items' ? '' : 'none';
 
         document.getElementById('stats-box-display').style.display = isChamp ? 'inline-block' : 'none';
         document.getElementById('progress-container-display').style.display = isChamp ? 'block' : 'none';
         document.getElementById('btn-random').style.display = isChamp ? 'flex' : 'none';
+        document.getElementById('btn-poster').style.display = isChamp ? 'flex' : 'none';
         document.getElementById('data-management-group').style.display = isChamp ? 'flex' : 'none';
 
         lastCompletedCount = -1; renderData(); applyFilters('All'); if(isChamp) updateStatsUI();
@@ -1606,8 +1658,10 @@
     }
 
     function toggleSort() {
-        currentSortMode = currentSortMode === 'default' ? 'uncompletedFirst' : 'default';
-        document.getElementById('btn-sort').innerHTML = currentSortMode === 'default' ? t('btnSortDefault') : t('btnSortSink');
+        const sortOrder = ['default', 'completedFirst', 'uncompletedFirst'];
+        currentSortMode = sortOrder[(sortOrder.indexOf(currentSortMode) + 1) % sortOrder.length];
+        const sortLabels = { default: 'btnSortDefault', completedFirst: 'btnSortTop', uncompletedFirst: 'btnSortSink' };
+        document.getElementById('btn-sort').innerHTML = t(sortLabels[currentSortMode]);
         savePrefs();
         renderData(); applyFilters();
     }
@@ -1694,9 +1748,12 @@
         let sortedData = [...appData[currentTab]];
 
         sortedData.sort((a, b) => {
-            if(currentTab === 'champions' && currentSortMode === 'uncompletedFirst') {
+            if(currentTab === 'champions' && currentSortMode !== 'default') {
                 const aComp = getCompletedSetCache.has(a.id); const bComp = getCompletedSetCache.has(b.id);
-                if (aComp !== bComp) return aComp ? 1 : -1;
+                if (aComp !== bComp) {
+                    if (currentSortMode === 'completedFirst') return aComp ? -1 : 1; // 置顶：已吃鸡在前（做海报）
+                    return aComp ? 1 : -1; // 沉底：未吃鸡在前（找目标）
+                }
             }
             if(currentTab === 'augments') {
                 // 默认顺序：白银 → 黄金 → 棱彩 → 特殊，同级内按名称
@@ -1788,7 +1845,7 @@
             showToast(t('toastWin', { name: escapeHtml(itemName) }));
         }
         updateStatsUI();
-        if(currentSortMode === 'uncompletedFirst') renderData();
+        if(currentSortMode !== 'default') renderData();
         applyFilters();
     }
 
@@ -1827,11 +1884,18 @@
             sorted.forEach(r => {
                 const champ = champById.get(r.id);
                 const name = champ ? champ.name : r.id;
-                const imgTag = champ ? `<img src="${champ.img}" alt="" loading="lazy">` : '';
+                const imgTag = champ ? `<img src="${champ.img}" alt="" loading="lazy" crossorigin="anonymous">` : '';
                 tlHtml += `<div class="tl-item">${imgTag}<div class="tl-name">${escapeHtml(name)}</div><div class="tl-date">${formatDate(r.ts)}</div></div>`;
             });
         }
         document.getElementById('timeline-list').innerHTML = tlHtml;
+
+        // 玩家ID（若已填写）
+        const pid = (localStorage.getItem(KEYS.player) || '').trim();
+        const pEl = document.getElementById('stats-player');
+        pEl.textContent = pid ? `🎮 ${pid}` : '';
+        pEl.style.display = pid ? 'block' : 'none';
+
         document.getElementById('stats-modal').classList.add('show');
     }
     function closeStatsModal() { document.getElementById('stats-modal').classList.remove('show'); }
@@ -2163,29 +2227,81 @@
             busyProgress(95, t('posterStageExport'));
             toolbar.style.display = 'block';
 
-            // 阶段③：导出
-            await new Promise(resolve => {
-                canvas.toBlob(blob => {
-                    if (!blob) { showToast(t('toastPosterFail')); resolve(); return; }
-                    busyProgress(100, t('posterStageExport'));
-                    const url = URL.createObjectURL(blob);
-                    if (IS_TOUCH) {
-                        const img = document.getElementById('poster-img');
-                        if (img.dataset.bloburl) URL.revokeObjectURL(img.dataset.bloburl);
-                        img.src = url; img.dataset.bloburl = url;
-                        document.getElementById('poster-modal').classList.add('show');
-                    } else {
-                        const a = document.createElement('a');
-                        a.href = url; a.download = `Arena_God_Poster_${Date.now()}.png`;
-                        a.click();
-                        setTimeout(() => URL.revokeObjectURL(url), 60000);
-                        showToast(t('toastPosterOk'));
-                    }
-                    resolve();
-                }, 'image/png');
-            });
+            // 阶段③：导出（与统计图共用交付逻辑）
+            await deliverImage(canvas, 'Arena_God_Poster');
         } catch(e) { console.error(e); showToast(t('toastPosterFail')); }
         finally { if (drawTicker) clearInterval(drawTicker); toolbar.style.display = 'block'; hideBusy(); }
+    }
+
+    // 画布交付（海报与统计图共用）：触屏 → 弹窗长按保存；桌面 → 直接下载
+    function deliverImage(canvas, filePrefix) {
+        return new Promise(resolve => {
+            canvas.toBlob(blob => {
+                if (!blob) { showToast(t('toastPosterFail')); resolve(); return; }
+                busyProgress(100, t('posterStageExport'));
+                const url = URL.createObjectURL(blob);
+                if (IS_TOUCH) {
+                    const img = document.getElementById('poster-img');
+                    if (img.dataset.bloburl) URL.revokeObjectURL(img.dataset.bloburl);
+                    img.src = url; img.dataset.bloburl = url;
+                    document.getElementById('poster-modal').classList.add('show');
+                } else {
+                    const a = document.createElement('a');
+                    a.href = url; a.download = `${filePrefix}_${Date.now()}.png`;
+                    a.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 60000);
+                    showToast(t('toastPosterOk'));
+                }
+                resolve();
+            }, 'image/png');
+        });
+    }
+
+    // 统计面板导出：临时展开滚动区域，整版捕获后还原
+    async function exportStatsImage() {
+        const box = document.querySelector('#stats-modal .stats-modal-box');
+        const body = document.querySelector('#stats-modal .stats-modal-body');
+        const exportBtn = document.getElementById('btn-stats-export');
+        if (!box) return;
+        showBusy(t('posterWorking'));
+        const savedBodyMax = body.style.maxHeight, savedBodyOv = body.style.overflowY, savedBoxMax = box.style.maxHeight;
+        try {
+            // 预载时间线头像（小图，很快），真实进度 0→50%
+            const imgs = [...box.querySelectorAll('img')];
+            let done = 0;
+            await Promise.all(imgs.map(img => new Promise(res => {
+                let s = false;
+                const fin = () => { if (s) return; s = true; done++; busyProgress(done / (imgs.length || 1) * 50, t('posterStageAssets', { a: done, b: imgs.length })); res(); };
+                img.loading = 'eager';
+                if (img.complete && img.naturalWidth > 0) return fin();
+                img.addEventListener('load', fin, { once: true });
+                img.addEventListener('error', fin, { once: true });
+                setTimeout(fin, 4000);
+            })));
+
+            // 展开滚动区域，让长时间线完整入图
+            body.style.maxHeight = 'none'; body.style.overflowY = 'visible'; box.style.maxHeight = 'none';
+            exportBtn.style.visibility = 'hidden';
+
+            busyProgress(55, t('posterStageDraw', { n: imgs.length }));
+            let pct = 55;
+            const ticker = setInterval(() => { pct = Math.min(92, pct + 1.2); busyProgress(pct, null); }, 200);
+
+            const bg = getComputedStyle(document.body).getPropertyValue('--bg-panel').trim() || '#181d25';
+            const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('stats timeout')), ms))]);
+            const canvas = await withTimeout(
+                html2canvas(box, { useCORS: true, backgroundColor: bg, scale: IS_TOUCH ? 1.5 : 2, imageTimeout: 5000, logging: false }),
+                45000
+            );
+            clearInterval(ticker);
+            busyProgress(95, t('posterStageExport'));
+            await deliverImage(canvas, 'Arena_Stats');
+        } catch(e) { console.error(e); showToast(t('toastPosterFail')); }
+        finally {
+            body.style.maxHeight = savedBodyMax; body.style.overflowY = savedBodyOv; box.style.maxHeight = savedBoxMax;
+            exportBtn.style.visibility = '';
+            hideBusy();
+        }
     }
 
     function closePosterModal() {
@@ -2321,7 +2437,7 @@
     // ---------- 导入 / 导出 / 重置 ----------
     function exportData(){
         const data = {
-            version: 10.8,
+            version: 10.9,
             exportTime: new Date().toISOString(),
             champions: getCompleted(),   // 兼容旧格式
             records: getRecords()        // 新格式：含吃鸡日期
@@ -2354,7 +2470,13 @@
     async function resetData() {
         if(currentTab !== 'champions') return;
         const confirmed = await showConfirmWithTimer(t('resetTitle'), t('resetMsg'), true);
-        if (confirmed) { saveRecords([]); renderData(); updateStatsUI(); applyFilters(); showToast(t('toastReset')); }
+        if (confirmed) {
+            saveRecords([]);
+            try { localStorage.removeItem(KEYS.player); } catch(e) {}
+            const pi = document.getElementById('player-id');
+            pi.value = ''; document.getElementById('player-id-wrap').classList.remove('has-value');
+            renderData(); updateStatsUI(); applyFilters(); showToast(t('toastReset'));
+        }
     }
 
     window.onload = init;
@@ -2364,7 +2486,7 @@
     <h3 data-i18n="footerTitle">关于 Arena God Tracker</h3>
     <p style="max-width: 800px; margin: 0 auto 10px auto; line-height: 1.6;" data-i18n="footerP1"></p>
     <p data-i18n="footerP2"></p>
-    <p style="margin-top: 15px; font-weight: bold; color: var(--gold-light);">Build: Ultimate V10.8 | 海克斯数据每 24 小时自动刷新</p>
+    <p style="margin-top: 15px; font-weight: bold; color: var(--gold-light);">Build: Ultimate V10.9 | 海克斯数据每 24 小时自动刷新</p>
 </div>
 
 </body>
